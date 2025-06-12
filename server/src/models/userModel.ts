@@ -13,7 +13,7 @@ export interface UserDocument extends Document {
   email: string;
   password: string;
   avatarUrl: string | null;
-  role: 'admin' | 'customer';
+  role: 'admin' | 'staff' | 'customer';
   isActive: boolean;
   lastLogin: Date | null;
   comparePassword(value: string): Promise<boolean>;
@@ -54,7 +54,7 @@ const userSchema = new Schema<UserDocument>(
       type: String,
       required: [true, 'Role is required'],
       enum: {
-        values: ['admin', 'customer'],
+        values: ['admin', 'staff', 'customer'],
         message: '{VALUE} is not supported',
       },
       default: 'customer',

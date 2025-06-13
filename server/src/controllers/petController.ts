@@ -31,8 +31,13 @@ export const petController = {
     try {
       const body = createPetSchema.parse(req.body);
       const userId = req.userId!;
+      
+      const petData = {
+        ...body,
+        publishedDate: body.publishedDate || new Date()
+      };
 
-      const pet = await petService.createPet(body, userId);
+      const pet = await petService.createPet(petData, userId);
 
       res.status(STATUS_CODE.CREATED).json({
         message: 'Pet created successfully',
@@ -154,7 +159,7 @@ export const petController = {
       const userId = req.userId!;
 
       if (typeof isAvailable !== 'boolean') {
-        return res.status(STATUS_CODE.BAD_REQUEST).json({
+          res.status(STATUS_CODE.BAD_REQUEST).json({
           message: 'isAvailable must be a boolean value',
         });
       }

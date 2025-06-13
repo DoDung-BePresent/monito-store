@@ -25,6 +25,8 @@ import productRoute from './routes/productRoute';
 import petRoute from './routes/petRoute';
 import breedRoute from './routes/breedRoute';
 import colorRoute from './routes/colorRoute';
+import filterPetRoute from './routes/filterPetRoute';
+import filterProductRoute from './routes/filterProductRoute';
 
 /**
  * App
@@ -61,6 +63,8 @@ app.use(`${BASE_PATH}/products`, productRoute);
 app.use(`${BASE_PATH}/pets`, petRoute);
 app.use(`${BASE_PATH}/breeds`, breedRoute);
 app.use(`${BASE_PATH}/colors`, colorRoute);
+app.use(`${BASE_PATH}/pet-filters`, filterPetRoute);
+app.use(`${BASE_PATH}/product-filters`, filterProductRoute); 
 
 /**
  * Error Handler

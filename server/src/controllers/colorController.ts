@@ -24,9 +24,10 @@ export const colorController = {
       const userId = req.userId!;
 
       if (!name) {
-        return res.status(STATUS_CODE.BAD_REQUEST).json({
+        res.status(STATUS_CODE.BAD_REQUEST).json({
           message: 'Color name is required',
         });
+        return;
       }
 
       const color = await colorService.createColor(

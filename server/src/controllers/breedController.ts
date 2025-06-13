@@ -24,7 +24,7 @@ export const breedController = {
       const userId = req.userId!;
 
       if (!name) {
-        return res.status(STATUS_CODE.BAD_REQUEST).json({
+          res.status(STATUS_CODE.BAD_REQUEST).json({
           message: 'Name are required',
         });
       }

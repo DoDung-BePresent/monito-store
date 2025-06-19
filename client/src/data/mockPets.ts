@@ -171,3 +171,4 @@ export const generateMockPets = (count: number = 30): Pet[] => {
 };
 
 export const mockPets = generateMockPets(30);
+export const mockColors = colors;

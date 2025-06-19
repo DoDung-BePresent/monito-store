@@ -12,6 +12,7 @@ import {
 } from '@tanstack/react-table';
 import { ChevronDown, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -47,17 +48,19 @@ import {
 import type { Pet } from '@/types/pet';
 import { cn } from '@/lib/utils';
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[];
-  data: TData[];
+interface PetDataTableProps {
+  columns: ColumnDef<Pet>[];
+  data: Pet[];
   className?: string;
+  setData?: (data: Pet[]) => void;
 }
 
-export function PetDataTable<TData, TValue>({
+export function PetDataTable({
   columns,
   data,
   className,
-}: DataTableProps<TData, TValue>) {
+  setData,
+}: PetDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -95,7 +98,7 @@ export function PetDataTable<TData, TValue>({
 
   const getSizeOptions = () => ['Small', 'Medium', 'Large'];
 
-  const breedOptions = getBreedOptions(data as Pet[]);
+  const breedOptions = getBreedOptions(data);
   const sizeOptions = getSizeOptions();
 
   // Pagination helpers
@@ -129,8 +132,8 @@ export function PetDataTable<TData, TValue>({
   return (
     <div className={cn('w-full space-y-4', className)}>
       {/* Toolbar */}
-      <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
-        <div className="flex flex-col space-y-2 lg:flex-row lg:items-center lg:space-y-0 lg:space-x-2">
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:space-y-0 lg:space-x-2">
           <div className="relative">
             <Search className="text-muted-foreground absolute top-2.5 left-2 h-4 w-4" />
             <Input
@@ -232,22 +235,24 @@ export function PetDataTable<TData, TValue>({
                         column.toggleVisibility(!!value)
                       }
                     >
-                      {column.id}
+                      {column.id.replace(/([A-Z])/g, ' $1').trim()}
                     </DropdownMenuCheckboxItem>
                   );
                 })}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button className="">
-            <Plus className="h-4 w-4" />
-            Add Pet
+          <Button asChild>
+            <Link to="/staff/pets/add">
+              <Plus className="h-4 w-4" />
+              Add Pet
+            </Link>
           </Button>
         </div>
       </div>
 
       {/* Selected items actions */}
       {table.getFilteredSelectedRowModel().rows.length > 0 && (
-        <div className="bg-muted/50 flex items-center justify-between rounded-md border px-4 py-2">
+        <div className="bg-muted/50 mb-4 flex items-center justify-between rounded-md border px-4 py-2">
           <div className="text-muted-foreground text-sm">
             {table.getFilteredSelectedRowModel().rows.length} of{' '}
             {table.getFilteredRowModel().rows.length} row(s) selected.
@@ -257,9 +262,21 @@ export function PetDataTable<TData, TValue>({
               Export Selected
             </Button>
             <Button variant="outline" size="sm">
-              Bulk Update
+              Bulk Edit
             </Button>
-            <Button variant="destructive" size="sm">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                if (setData) {
+                  const selectedIds = table
+                    .getFilteredSelectedRowModel()
+                    .rows.map((row) => row.original._id);
+                  setData(data.filter((item: Pet) => !selectedIds.includes(item._id)));
+                  table.resetRowSelection();
+                }
+              }}
+            >
               Delete Selected
             </Button>
           </div>

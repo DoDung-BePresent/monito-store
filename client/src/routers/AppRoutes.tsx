@@ -41,6 +41,7 @@ import AdminDashboard from '@/pages/admin/AdminDashboard';
 import UserManagement from '@/pages/admin/UserManagement';
 import LoadingScreen from '@/pages/common/LoadingScreen';
 import AddProduct from '@/pages/staff/product/AddProduct';
+import AddPet from '@/pages/staff/pet/AddPet';
 
 const AppRoutes = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -84,6 +85,7 @@ const AppRoutes = () => {
           <Route path="products" element={<ProductsManagement />} />
           <Route path="products/add" element={<AddProduct />} />
           <Route path="pets" element={<PetsManagement />} />
+          <Route path="pets/add" element={<AddPet />} />
           <Route path="orders" element={<OrdersManagement />} />
           <Route path="categories" element={<CategoriesManagement />} />
           <Route path="colors" element={<ColorsManagement />} />

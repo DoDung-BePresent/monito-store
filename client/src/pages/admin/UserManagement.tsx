@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Search, Eye, CheckCircle, Ban, AlertTriangle } from 'lucide-react';
 
 const UserManagement = () => {

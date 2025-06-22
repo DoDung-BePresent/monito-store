@@ -10,6 +10,7 @@ import {
 import { Plus, Edit, Trash2 } from 'lucide-react';
 
 const CategoriesManagement = () => {
+  // @ts-ignore
   const [categories, setCategories] = useState([
     {
       id: 1,

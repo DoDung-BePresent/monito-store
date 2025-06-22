@@ -80,13 +80,16 @@ export const productColumns: ColumnDef<Product>[] = [
         </div>
       );
     },
-  },
-  {
+  },  {
     accessorKey: 'category',
     header: 'Category',
     cell: ({ row }) => {
       const category = row.getValue('category') as Product['category'];
-      return <Badge variant="secondary">{category.name}</Badge>;
+      // Handle both string and object types for backward compatibility
+      const categoryName = typeof category === 'string' 
+        ? category 
+        : (category as { _id: string; name: string; description?: string })?.name || 'Unknown';
+      return <Badge variant="secondary">{categoryName}</Badge>;
     },
   },
   {

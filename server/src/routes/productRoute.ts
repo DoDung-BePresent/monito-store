@@ -18,7 +18,16 @@ const productRoute = Router();
 
 // Public routes
 productRoute.get('/', productController.getProducts);
-productRoute.get('/:id', productController.getProductById);
+// Completely separate route to avoid any conflicts
+productRoute.get('/options/filters', (req, res, next) => {
+  console.log('Filter options route hit');
+  productController.getFilterOptions(req, res, next);
+});
+// ID route (must come after all specific routes with parameters)
+productRoute.get('/:id', (req, res, next) => {
+  console.log('ID route hit with param:', req.params.id);
+  productController.getProductById(req, res, next);
+});
 
 // Protected routes - Only admin and staff can manage products
 productRoute.post(

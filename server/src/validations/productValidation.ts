@@ -44,14 +44,50 @@ export const createProductSchema = z.object({
 export const updateProductSchema = createProductSchema.partial();
 
 export const productFiltersSchema = z.object({
-  category: z.string().optional(),
+  category: z.string().optional().refine((val) => {
+    // Allow empty string, 'all', valid ObjectId, or any other string (will be handled as category name)
+    if (!val || val === 'all') return true;
+    // Allow any string - will be validated in service layer
+    return typeof val === 'string';
+  }, { message: 'Category must be a valid string' }),
   brand: z.string().optional(),
-  minPrice: z.number().min(0).optional(),
-  maxPrice: z.number().min(0).optional(),
-  inStock: z.boolean().optional(),
-  isActive: z.boolean().optional(),
-  page: z.number().min(1).default(1),
-  limit: z.number().min(1).max(100).default(15),
-  sortBy: z.enum(['name', 'price', 'rating', 'createdAt']).default('createdAt'),
-  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+  search: z.string().optional(),
+  minPrice: z.coerce.number().optional(),
+  maxPrice: z.coerce.number().optional(),
+  inStock: z.preprocess(
+    (val) => {
+      if (val === 'true') return true;
+      if (val === 'false') return false;
+      if (typeof val === 'boolean') return val;
+      return undefined;
+    },
+    z.boolean().optional()
+  ),
+  isActive: z.preprocess(
+    (val) => {
+      if (val === 'true') return true;
+      if (val === 'false') return false;
+      if (typeof val === 'boolean') return val;
+      return undefined;
+    },
+    z.boolean().optional()
+  ),
+  page: z.preprocess(
+    (val) => {
+      if (typeof val === 'string') return parseInt(val, 10);
+      if (typeof val === 'number') return val;
+      return 1;
+    },
+    z.number().int().positive().default(1)
+  ),
+  limit: z.preprocess(
+    (val) => {
+      if (typeof val === 'string') return parseInt(val, 10);
+      if (typeof val === 'number') return val;
+      return 15;
+    },
+    z.number().int().positive().default(15)
+  ),
+  sortBy: z.enum(['name', 'price', 'createdAt', 'rating']).optional().default('createdAt'),
+  sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
 });

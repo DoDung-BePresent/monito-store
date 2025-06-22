@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Users,
   Activity,
@@ -6,10 +5,7 @@ import {
   Server,
   TrendingUp,
   TrendingDown,
-  Database,
-  Package,
-  Heart,
-  ShoppingCart,
+  Database
 } from 'lucide-react';
 
 const AdminDashboard = () => {

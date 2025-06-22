@@ -59,11 +59,17 @@ export const productService = {
 
   /**
    * Get all products with filters and pagination
-   */
+   */    
   async getProducts(filters: ProductFilters) {
+    console.log('Received filters:', filters);
+    console.log('Category type:', typeof filters.category);
+    console.log('Category value:', filters.category);
+    console.log('Is category array?', Array.isArray(filters.category));
+    
     const {
       category,
       brand,
+      search,
       minPrice,
       maxPrice,
       inStock,
@@ -75,7 +81,24 @@ export const productService = {
     } = filters;
 
     // Build query
-    const query: any = {};
+    const query: any = {};    // Handle search functionality
+    if (search) {
+      const searchRegex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'); // Escape special regex chars
+      
+      // Be very careful with search to avoid any ObjectId conflicts
+      const searchConditions: any[] = [
+        { name: searchRegex },
+        { description: searchRegex },
+        { brand: searchRegex }
+      ];
+      
+      // Only add tags search if it's safe (no potential ObjectId conflicts)
+      if (search && !mongoose.Types.ObjectId.isValid(search)) {
+        searchConditions.push({ tags: searchRegex });
+      }
+      
+      query.$or = searchConditions;
+    }
 
     if (brand) query.brand = new RegExp(brand, 'i');
     if (minPrice !== undefined || maxPrice !== undefined) {
@@ -84,25 +107,72 @@ export const productService = {
       if (maxPrice !== undefined) query.price.$lte = maxPrice;
     }
     if (inStock !== undefined) query.isInStock = inStock;
-    if (isActive !== undefined) query.isActive = isActive;
-
-    // Handle category filter (can be ObjectId or category name)
-    if (category) {
-      if (mongoose.Types.ObjectId.isValid(category)) {
-        query.category = category;
+    if (isActive !== undefined) query.isActive = isActive;    // Handle category filter (can be ObjectId or category name)
+    if (category && typeof category === 'string' && category.trim() !== '') {
+      const trimmedCategory = category.trim();
+      console.log('Processing category filter:', trimmedCategory);
+      console.log('Is valid ObjectId?', mongoose.Types.ObjectId.isValid(trimmedCategory));
+      
+      if (mongoose.Types.ObjectId.isValid(trimmedCategory)) {
+        // If it's a valid ObjectId, use it directly
+        query.category = new mongoose.Types.ObjectId(trimmedCategory);
+        console.log('Using category as ObjectId:', trimmedCategory);
       } else {
-        // Find category by name
-        const categoryDoc = await CategoryModel.findOne({
-          name: new RegExp(category, 'i'),
-          isActive: true,
-        });
-        if (categoryDoc) {
-          query.category = categoryDoc._id;
-        } else {
-          // If category not found, return empty results
+        // If it's not a valid ObjectId, treat it as a category name and find the category
+        try {
+          console.log('Looking up category by name:', trimmedCategory);
+          
+          // Use a simple string match to avoid regex issues
+          const categoryDoc = await CategoryModel.findOne({
+            name: trimmedCategory,
+            isActive: true,
+          }).select('_id name').lean();
+          
+          console.log('Found category doc:', categoryDoc);
+            if (categoryDoc && categoryDoc._id) {
+            // Convert to ObjectId explicitly
+            query.category = new mongoose.Types.ObjectId(categoryDoc._id.toString());
+            console.log('Using category ObjectId from lookup:', categoryDoc._id);
+          } else {
+            // Try case-insensitive search as fallback
+            console.log('Trying case-insensitive search for category:', trimmedCategory);
+            const categoryDocCaseInsensitive = await CategoryModel.findOne({
+              name: { $regex: new RegExp(`^${trimmedCategory}$`, 'i') },
+              isActive: true,
+            }).select('_id name').lean();
+            
+            console.log('Found category doc (case-insensitive):', categoryDocCaseInsensitive);
+            
+            if (categoryDocCaseInsensitive && categoryDocCaseInsensitive._id) {
+              query.category = new mongoose.Types.ObjectId(categoryDocCaseInsensitive._id.toString());
+              console.log('Using category ObjectId from case-insensitive lookup:', categoryDocCaseInsensitive._id);
+            } else {
+              // If category not found, return empty results
+              console.log('Category not found, returning empty results');
+              return {
+                products: [],
+                pagination: {
+                  currentPage: page,
+                  totalPages: 0,
+                  totalItems: 0,
+                  hasNextPage: false,
+                  hasPrevPage: false,
+                },
+              };
+            }
+          }
+        } catch (categoryError) {
+          // If there's an error finding the category, return empty results
+          console.log('Error finding category:', categoryError);
           return {
             products: [],
-            pagination: { page, limit, total: 0, pages: 0 },
+            pagination: {
+              currentPage: page,
+              totalPages: 0,
+              totalItems: 0,
+              hasNextPage: false,
+              hasPrevPage: false,
+            },
           };
         }
       }
@@ -110,31 +180,73 @@ export const productService = {
 
     // Build sort
     const sort: any = {};
-    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;    // Calculate pagination
+    const skip = (page - 1) * limit;    console.log('Final query object:', JSON.stringify(query, null, 2));
+    console.log('Sort object:', JSON.stringify(sort, null, 2));
+    console.log('Skip:', skip, 'Limit:', limit);
 
-    // Calculate pagination
-    const skip = (page - 1) * limit;
-
-    // Execute queries
-    const [products, total] = await Promise.all([
-      ProductModel.find(query)
-        .sort(sort)
-        .skip(skip)
-        .limit(limit)
-        .populate([{ path: 'category', select: 'name description' }])
-        .lean(),
-      ProductModel.countDocuments(query),
-    ]);
-
-    return {
-      products,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
+    // Final validation: ensure ALL ObjectId fields in query are valid
+    if (query.category) {
+      console.log('Final category value:', query.category);
+      console.log('Final category type:', typeof query.category);
+      console.log('Is final category valid ObjectId?', mongoose.Types.ObjectId.isValid(query.category));
+      
+      if (!mongoose.Types.ObjectId.isValid(query.category)) {
+        console.error('CRITICAL: Invalid ObjectId in final query for category:', query.category);
+        throw new BadRequestException(`Invalid category filter provided: ${query.category}`);
+      }
+    }    // Additional check: scan the entire query for any string values that look like they should be ObjectIds
+    const queryStr = JSON.stringify(query);
+    if (queryStr.includes('"Toy"') || queryStr.includes("'Toy'")) {
+      console.error('CRITICAL: Found "Toy" string in final query, this should not happen');
+      console.error('Full query:', queryStr);
+      throw new BadRequestException('Invalid query structure detected');
+    }    // Deep check for any ObjectId-like fields that might have string values
+    const checkObjectIdFields = (obj: any, path = ''): void => {
+      for (const [key, value] of Object.entries(obj)) {
+        const currentPath = path ? `${path}.${key}` : key;
+        
+        if (key === 'category' && value && typeof value === 'string') {
+          console.error(`CRITICAL: Found string value for category at ${currentPath}:`, value);
+          throw new BadRequestException(`Invalid ObjectId string found at ${currentPath}: ${value}`);
+        }
+        
+        if (typeof value === 'object' && value !== null && !Array.isArray(value) && !(value instanceof mongoose.Types.ObjectId)) {
+          checkObjectIdFields(value, currentPath);
+        }
+      }
     };
+    
+    checkObjectIdFields(query);
+
+    try {
+      // Execute queries
+      const [products, total] = await Promise.all([
+        ProductModel.find(query)
+          .sort(sort)
+          .skip(skip)
+          .limit(limit)
+          .populate([{ path: 'category', select: 'name description' }])
+          .lean(),
+        ProductModel.countDocuments(query),
+      ]);
+
+      console.log('Query executed successfully. Found', products.length, 'products out of', total, 'total');
+      
+      return {
+        products,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(total / limit),
+          totalItems: total,
+          hasNextPage: page < Math.ceil(total / limit),
+          hasPrevPage: page > 1,
+        },
+      };
+    } catch (queryError) {
+      console.error('Error executing product query:', queryError);
+      throw queryError;
+    }
   },
 
   /**
@@ -263,6 +375,39 @@ export const productService = {
       throw error;
     } finally {
       session.endSession();
+    }
+  },
+  /**
+ * Get filter options for products (categories, brands, price range)
+ */
+  async getFilterOptions() {
+    try {
+      // Get distinct categories
+      const categories = await CategoryModel.find({ isActive: true })
+        .select('_id name description')
+        .lean();
+
+      // Get distinct brands
+      const brands = await ProductModel.distinct('brand');
+
+      // Get price range
+      const [priceRange] = await ProductModel.aggregate([
+        {
+          $group: {
+            _id: null,
+            minPrice: { $min: '$price' },
+            maxPrice: { $max: '$price' },
+          },
+        },
+      ]);
+
+      return {
+        categories,
+        brands,
+        priceRange: priceRange || { minPrice: 0, maxPrice: 0 },
+      };
+    } catch (error) {
+      throw error;
     }
   },
 };

@@ -1,21 +1,17 @@
-import type { Category } from './category';
-
-export interface Product {
+export type Product = {
   _id: string;
   name: string;
-  category: Category;
+  category: string | { _id: string; name: string; description?: string };
   brand: string;
   price: number;
   originalPrice?: number;
-  discount?: number;
   description: string;
   images: string[];
   specifications: {
-    weight?: string;
-    size?: string;
-    material?: string;
-    color?: string;
+    ageGroup?: string;
+    petType?: string[] | string;
     ingredients?: string[];
+    [key: string]: any;
   };
   stock: number;
   isInStock: boolean;
@@ -24,37 +20,41 @@ export interface Product {
   rating: number;
   reviewCount: number;
   isActive: boolean;
+  discount?: number;
+  createdBy: string;
   createdAt: string;
   updatedAt: string;
-}
+};
 
-export interface CreateProductPayload {
-  name: string;
-  category: string; // ObjectId string
-  brand: string;
-  price: number;
-  originalPrice?: number;
-  description: string;
-  images: string[];
-  specifications: {
-    weight?: string;
-    size?: string;
-    material?: string;
-    color?: string;
-    ingredients?: string[];
-  };
-  stock: number;
-  tags?: string[];
-  gifts?: string[];
+export type CreateProductPayload = Omit<
+  Product,
+  '_id' | 'createdBy' | 'createdAt' | 'updatedAt' | 'rating' | 'reviewCount'
+>;
+
+export type UpdateProductPayload = Partial<CreateProductPayload>;
+
+export type ProductFilters = {
+  category?: string;
+  brand?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  petType?: string;
+  inStock?: boolean;
   isActive?: boolean;
-}
+  search?: string; 
+  page?: number;
+  limit?: number;
+  sortBy?: 'name' | 'price' | 'rating' | 'createdAt';
+  sortOrder?: 'asc' | 'desc';
+};
 
-export interface ProductsResponse {
+export type ProductsResponse = {
   products: Product[];
   pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
   };
-}
+};

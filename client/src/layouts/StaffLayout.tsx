@@ -47,10 +47,9 @@ const StaffLayout = () => {
                     <BreadcrumbItem className="hidden md:block">
                       {breadcrumb.isCurrentPage ? (
                         <BreadcrumbPage>{breadcrumb.label}</BreadcrumbPage>
-                      ) : (
-                        <BreadcrumbLink>
-                          <Link to={breadcrumb.href}>{breadcrumb.label}</Link>
-                        </BreadcrumbLink>
+                      ) : (<BreadcrumbLink asChild>
+                        <Link to={breadcrumb.href}>{breadcrumb.label}</Link>
+                      </BreadcrumbLink>
                       )}
                     </BreadcrumbItem>
                   </div>

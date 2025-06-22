@@ -54,6 +54,7 @@ export type UpdateProductPayload = Partial<CreateProductPayload>;
 export type ProductFilters = {
   category?: string;
   brand?: string;
+  search?: string;
   minPrice?: number;
   maxPrice?: number;
   inStock?: boolean;

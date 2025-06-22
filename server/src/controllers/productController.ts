@@ -41,14 +41,15 @@ export const productController = {
       next(error);
     }
   },
-
   async getProducts(
     req: Request,
     res: Response,
     next: NextFunction,
   ): Promise<void> {
     try {
+      console.log('Raw query parameters:', req.query);
       const filters = productFiltersSchema.parse(req.query);
+      console.log('Parsed filters:', filters);
 
       const result = await productService.getProducts(filters);
 
@@ -57,10 +58,10 @@ export const productController = {
         data: result
       });
     } catch (error) {
+      console.error('Error in getProducts controller:', error);
       next(error);
     }
   },
-
   async getProductById(
     req: Request,
     res: Response,
@@ -68,6 +69,14 @@ export const productController = {
   ): Promise<void> {
     try {
       const { id } = req.params;
+      
+      // Add ObjectId validation
+      if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+        res.status(STATUS_CODE.BAD_REQUEST).json({
+          message: 'Invalid product ID format',
+        });
+        return;
+      }
 
       const product = await productService.getProductById(id);
 
@@ -112,6 +121,22 @@ export const productController = {
 
       res.status(STATUS_CODE.OK).json({
         message: 'Product deleted successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+  async getFilterOptions(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const filterOptions = await productService.getFilterOptions();
+
+      res.status(STATUS_CODE.OK).json({
+        message: 'Filter options retrieved successfully',
+        data: filterOptions,
       });
     } catch (error) {
       next(error);

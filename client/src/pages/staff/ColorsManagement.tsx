@@ -10,6 +10,7 @@ import {
 import { Plus, Edit, Trash2 } from 'lucide-react';
 
 const ColorsManagement = () => {
+  // @ts-ignore
   const [colors, setColors] = useState([
     { id: 1, name: 'Black', hex: '#000000', usageCount: 25 },
     { id: 2, name: 'White', hex: '#FFFFFF', usageCount: 18 },

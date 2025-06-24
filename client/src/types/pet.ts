@@ -28,6 +28,7 @@ export interface Pet {
   isAvailable: boolean;
   createdAt: string;
   updatedAt: string;
+  sku: string;
 }
 
 export interface CreatePetPayload {
@@ -45,9 +46,10 @@ export interface CreatePetPayload {
   hasCert: boolean;
   hasMicrochip: boolean;
   location: string;
-  publishedDate: string;
+  publishedDate?: Date;
   additionalInfo?: string;
   isAvailable: boolean;
+  sku?: string;
 }
 
 export type UpdatePetPayload = Partial<CreatePetPayload>;

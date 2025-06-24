@@ -215,8 +215,11 @@ export const petColumns: ColumnDef<Pet>[] = [
       );
     },
     filterFn: (row, id, value) => {
-      if (value === 'all') return true;
-      return value === 'available' ? row.getValue(id) : !row.getValue(id);
+      if (!value || value === 'all') {
+        return true;
+      }
+      const isAvailable = row.getValue(id) as boolean;
+      return isAvailable === (value === 'available');
     },
   },
   {

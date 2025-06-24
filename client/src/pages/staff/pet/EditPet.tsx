@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,7 +9,9 @@ import {
   Package,
   ImageIcon,
   Info,
-  Loader2,
+  Upload,
+  X,
+  AlertCircle,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -40,9 +42,11 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { usePet, useUpdatePet } from '@/hooks/usePets';
 import { useActiveBreeds } from '@/hooks/useBreeds';
 import { useActiveColors } from '@/hooks/useColors';
+import { petService } from '@/services/petService';
 
 const editPetSchema = z.object({
   name: z.string().min(1, 'Pet name is required').max(100),
@@ -52,9 +56,6 @@ const editPetSchema = z.object({
   size: z.enum(['Small', 'Medium', 'Large']),
   color: z.string().min(1, 'Color is required'),
   price: z.number().min(0, 'Price must be positive'),
-  images: z
-    .array(z.string().url('Must be a valid URL'))
-    .min(1, 'At least one image is required'),
   description: z.string().optional(),
   isVaccinated: z.boolean(),
   isDewormed: z.boolean(),
@@ -63,6 +64,7 @@ const editPetSchema = z.object({
   location: z.string().min(1, 'Location is required'),
   additionalInfo: z.string().optional(),
   isAvailable: z.boolean(),
+  publishedDate: z.date().optional(),
 });
 
 type EditPetFormValues = z.infer<typeof editPetSchema>;
@@ -71,7 +73,12 @@ const EditPet = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const updatePet = useUpdatePet();
+
+  // Component state
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [images, setImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [dragActive, setDragActive] = useState(false);
 
   // Get pet data and form options
   const { data: pet, isLoading: petLoading, error: petError } = usePet(id!);
@@ -88,7 +95,6 @@ const EditPet = () => {
       size: 'Small',
       color: '',
       price: 0,
-      images: [],
       description: '',
       isVaccinated: false,
       isDewormed: false,
@@ -97,6 +103,7 @@ const EditPet = () => {
       location: '',
       additionalInfo: '',
       isAvailable: true,
+      publishedDate: undefined,
     },
   });
 
@@ -111,7 +118,6 @@ const EditPet = () => {
         size: pet.size,
         color: typeof pet.color === 'object' ? pet.color._id : pet.color,
         price: pet.price,
-        images: pet.images,
         description: pet.description || '',
         isVaccinated: pet.isVaccinated,
         isDewormed: pet.isDewormed,
@@ -120,19 +126,128 @@ const EditPet = () => {
         location: pet.location,
         additionalInfo: pet.additionalInfo || '',
         isAvailable: pet.isAvailable,
+        publishedDate: pet.publishedDate ? new Date(pet.publishedDate) : undefined,
       });
+      // Set initial image previews from pet data
+      setImagePreviews(pet.images || []);
     }
   }, [pet, form]);
 
+  // Image handling logic
+  const handleFiles = useCallback(
+    (files: FileList | File[]) => {
+      const fileArray = Array.from(files);
+      const imageFiles = fileArray.filter((file) =>
+        file.type.startsWith('image/'),
+      );
+
+      if (imageFiles.length === 0) return;
+
+      const newImages = [...images, ...imageFiles].slice(
+        0,
+        5 - imagePreviews.length,
+      ); // Max 5 images
+      setImages((prev) => [...prev, ...newImages]);
+
+      // Generate previews for new images
+      const newPreviews = [...imagePreviews];
+      newImages.forEach((file) => {
+        newPreviews.push(URL.createObjectURL(file));
+      });
+      setImagePreviews(newPreviews);
+    },
+    [images, imagePreviews],
+  );
+
+  const handleDrag = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(false);
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleFiles(e.dataTransfer.files);
+      }
+    },
+    [handleFiles],
+  );
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    if (e.target.files && e.target.files[0]) {
+      handleFiles(e.target.files);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    const previewToRemove = imagePreviews[index];
+
+    // Check if the image to remove is a new upload (blob URL)
+    const imageIndexInFiles = images.findIndex(
+      (file) => URL.createObjectURL(file) === previewToRemove,
+    );
+
+    if (imageIndexInFiles > -1) {
+      // It's a new file, remove it from the `images` state
+      setImages(images.filter((_, i) => i !== imageIndexInFiles));
+    }
+
+    // Always remove from previews
+    const newPreviews = imagePreviews.filter((_, i) => i !== index);
+    setImagePreviews(newPreviews);
+
+    // Revoke object URL if it was a blob
+    if (previewToRemove.startsWith('blob:')) {
+      URL.revokeObjectURL(previewToRemove);
+    }
+  };
+
   const onSubmit = async (data: EditPetFormValues) => {
     if (!id) return;
+    if (imagePreviews.length === 0) {
+      alert('Please add at least one pet image.');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
-      await updatePet.mutateAsync({ id, data });
+      // 1. Upload new files from the `images` state
+      const uploadPromises = images.map((file) => petService.uploadImage(file));
+      const responses = await Promise.all(uploadPromises);
+      const newImageUrls = responses
+        .map((res) => res.data?.imageUrl)
+        .filter((url): url is string => !!url);
+
+      if (newImageUrls.length !== images.length) {
+        alert('Some images failed to upload. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // 2. Get existing URLs that were not removed
+      const existingImageUrls = imagePreviews.filter((url) =>
+        url.startsWith('http'),
+      );
+
+      // 3. Combine the two lists
+      const finalImageUrls = [...existingImageUrls, ...newImageUrls];
+
+      // 4. Create payload and mutate
+      const payload = { ...data, images: finalImageUrls };
+      await updatePet.mutateAsync({ id, data: payload });
       navigate('/staff/pets');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to update pet:', error);
+      alert('Failed to update pet. Please check the details and try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -218,10 +333,7 @@ const EditPet = () => {
               >
                 <Save className="mr-2 h-4 w-4" />
                 {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Updating Pet...
-                  </>
+                  <>Updating Pet...</>
                 ) : (
                   'Update Pet'
                 )}
@@ -468,59 +580,82 @@ const EditPet = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="images"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Image URLs *</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Enter image URLs, one per line"
-                          value={field.value.join('\n')}
-                          onChange={(e) =>
-                            field.onChange(
-                              e.target.value.split('\n').filter(Boolean),
-                            )
-                          }
-                          className="min-h-[120px] resize-none"
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Enter each image URL on a new line
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Image Previews */}
-                {form.watch('images').length > 0 && (
-                  <div>
-                    <h4 className="mb-3 text-sm font-medium">Image Previews</h4>
-                    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-                      {form.watch('images').map((url, index) => (
-                        <div key={index} className="group relative">
-                          <div className="aspect-square overflow-hidden rounded-lg border-2 border-gray-200 bg-gray-100">
-                            <img
-                              src={url}
-                              alt={`Pet ${index + 1}`}
-                              className="h-full w-full object-cover"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src =
-                                  'https://via.placeholder.com/300x300?text=Invalid+URL';
-                              }}
-                            />
-                          </div>
-                          {index === 0 && (
-                            <div className="absolute -top-2 -right-2 rounded-full bg-blue-600 px-2 py-1 text-xs text-white">
-                              Main
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                <div
+                  className={`relative rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
+                    dragActive
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                >
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleFileInput}
+                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    disabled={imagePreviews.length >= 5}
+                  />
+                  <div className="space-y-4">
+                    <div className="mx-auto h-12 w-12 text-gray-400">
+                      <Upload className="h-full w-full" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-medium text-gray-700">
+                        Drag & drop images here, or click to select
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        PNG, JPG, GIF (max 5 images)
+                      </p>
                     </div>
                   </div>
+                </div>
+
+                {/* Image Previews */}
+                {imagePreviews.length > 0 && (
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={preview} className="group relative">
+                        <div className="aspect-square overflow-hidden rounded-lg border-2 border-gray-200 bg-gray-100">
+                          <img
+                            src={preview}
+                            alt={`Pet preview ${index + 1}`}
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src =
+                                'https://via.placeholder.com/300x300?text=Invalid+URL';
+                            }}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 opacity-0 transition-opacity group-hover:opacity-100"
+                          onClick={() => removeImage(index)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                        {index === 0 && (
+                          <div className="absolute bottom-2 left-2 rounded-full bg-blue-600 px-2 py-1 text-xs text-white">
+                            Main
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {imagePreviews.length === 0 && (
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      At least one pet image is required.
+                    </AlertDescription>
+                  </Alert>
                 )}
               </CardContent>
             </Card>
@@ -537,7 +672,30 @@ const EditPet = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                <FormField
+                  control={form.control}
+                  name="publishedDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Published Date *</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          value={
+                            field.value
+                              ? new Date(field.value).toISOString().split('T')[0]
+                              : ''
+                          }
+                          onChange={(e) =>
+                            field.onChange(new Date(e.target.value))
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="isVaccinated"
@@ -551,9 +709,6 @@ const EditPet = () => {
                         </FormControl>
                         <div className="space-y-1 leading-none">
                           <FormLabel>Vaccinated</FormLabel>
-                          <FormDescription className="text-xs">
-                            Has received vaccinations
-                          </FormDescription>
                         </div>
                       </FormItem>
                     )}
@@ -572,9 +727,6 @@ const EditPet = () => {
                         </FormControl>
                         <div className="space-y-1 leading-none">
                           <FormLabel>Dewormed</FormLabel>
-                          <FormDescription className="text-xs">
-                            Has been dewormed
-                          </FormDescription>
                         </div>
                       </FormItem>
                     )}
@@ -593,9 +745,6 @@ const EditPet = () => {
                         </FormControl>
                         <div className="space-y-1 leading-none">
                           <FormLabel>Certificate</FormLabel>
-                          <FormDescription className="text-xs">
-                            Has health certificate
-                          </FormDescription>
                         </div>
                       </FormItem>
                     )}
@@ -614,9 +763,6 @@ const EditPet = () => {
                         </FormControl>
                         <div className="space-y-1 leading-none">
                           <FormLabel>Microchip</FormLabel>
-                          <FormDescription className="text-xs">
-                            Has microchip implanted
-                          </FormDescription>
                         </div>
                       </FormItem>
                     )}

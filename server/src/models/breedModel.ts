@@ -33,7 +33,6 @@ const breedSchema = new Schema<BreedDocument>(
   },
 );
 
-breedSchema.index({ name: 1 });
 breedSchema.index({ isActive: 1 });
 
 const BreedModel = mongoose.model<BreedDocument>('Breed', breedSchema);

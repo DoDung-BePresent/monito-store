@@ -33,7 +33,6 @@ const categorySchema = new Schema<CategoryDocument>(
   },
 );
 
-categorySchema.index({ name: 1 });
 categorySchema.index({ isActive: 1 });
 
 const CategoryModel = mongoose.model<CategoryDocument>(

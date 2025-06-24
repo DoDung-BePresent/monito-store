@@ -48,7 +48,7 @@ const StaffLayout = () => {
                       {breadcrumb.isCurrentPage ? (
                         <BreadcrumbPage>{breadcrumb.label}</BreadcrumbPage>
                       ) : (
-                        <BreadcrumbLink>
+                        <BreadcrumbLink asChild>
                           <Link to={breadcrumb.href}>{breadcrumb.label}</Link>
                         </BreadcrumbLink>
                       )}

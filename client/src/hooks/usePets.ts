@@ -32,7 +32,7 @@ export const usePet = (id: string) => {
     queryKey: petKeys.detail(id),
     queryFn: async () => {
       const response = await petService.getPetById(id);
-      return response.data?.pet;
+      return response.data || null;
     },
     enabled: !!id,
   });
@@ -45,7 +45,7 @@ export const useCreatePet = () => {
     mutationFn: (data: CreatePetPayload) => petService.createPet(data),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: petKeys.all });
-      const newPet = response.data?.pet;
+      const newPet = response.data;
       if (newPet) {
         queryClient.setQueryData(petKeys.lists(), (old: Pet[] = []) => [
           newPet,
@@ -56,7 +56,7 @@ export const useCreatePet = () => {
       return newPet;
     },
     onError: (error: any) => {
-      const apiError = error.response?.data as ApiError;
+      const apiError = error?.response?.data as ApiError;
       const message = getErrorMessage(apiError?.errorCode, apiError?.message);
       toast.error(message);
     },
@@ -71,7 +71,7 @@ export const useUpdatePet = () => {
       petService.updatePet(id, data),
     onSuccess: (response, { id }) => {
       queryClient.invalidateQueries({ queryKey: petKeys.all });
-      const updatedPet = response.data?.pet;
+      const updatedPet = response.data;
       if (updatedPet) {
         queryClient.setQueryData(petKeys.detail(id), updatedPet);
         queryClient.setQueryData(petKeys.lists(), (old: Pet[] = []) =>
@@ -82,7 +82,7 @@ export const useUpdatePet = () => {
       return updatedPet;
     },
     onError: (error: any) => {
-      const apiError = error.response?.data as ApiError;
+      const apiError = error?.response?.data as ApiError;
       const message = getErrorMessage(apiError?.errorCode, apiError?.message);
       toast.error(message);
     },
@@ -108,7 +108,7 @@ export const useUpdatePetAvailability = () => {
       return updatedPet;
     },
     onError: (error: any) => {
-      const apiError = error.response?.data as ApiError;
+      const apiError = error?.response?.data as ApiError;
       const message = getErrorMessage(apiError?.errorCode, apiError?.message);
       toast.error(message);
     },
@@ -129,7 +129,7 @@ export const useDeletePet = () => {
       toast.success('Pet deleted successfully!');
     },
     onError: (error: any) => {
-      const apiError = error.response?.data as ApiError;
+      const apiError = error?.response?.data as ApiError;
       const message = getErrorMessage(apiError?.errorCode, apiError?.message);
       toast.error(message);
     },
@@ -155,7 +155,7 @@ export const useBulkDeletePets = () => {
       toast.success(`${deletedIds.length} pets deleted successfully!`);
     },
     onError: (error: any) => {
-      const apiError = error.response?.data as ApiError;
+      const apiError = error?.response?.data as ApiError;
       const message = getErrorMessage(apiError?.errorCode, apiError?.message);
       toast.error(message);
     },
@@ -204,7 +204,7 @@ export const useBulkUpdatePetAvailability = () => {
       toast.success(`${ids.length} pets ${action} successfully!`);
     },
     onError: (error: any) => {
-      const apiError = error.response?.data as ApiError;
+      const apiError = error?.response?.data as ApiError;
       const message = getErrorMessage(apiError?.errorCode, apiError?.message);
       toast.error(message);
     },

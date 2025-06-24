@@ -35,7 +35,7 @@ export const createPetSchema = z.object({
   hasCert: z.boolean().default(false),
   hasMicrochip: z.boolean().default(false),
   location: z.string().trim().min(1, 'Location is required'),
-  publishedDate: z.date().optional(),
+  publishedDate: z.coerce.date().optional(),
   additionalInfo: z
     .string()
     .trim()

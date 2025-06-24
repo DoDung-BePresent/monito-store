@@ -52,15 +52,16 @@ import {
   useBulkDeletePets,
   useBulkUpdatePetAvailability,
 } from '@/hooks/usePets';
+import type { Pet } from '@/types/pet';
 
-interface DataTableProps<TData, TValue> {
+interface DataTableProps<TData extends Pet, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   isLoading?: boolean;
   className?: string;
 }
 
-export function PetDataTable<TData, TValue>({
+export function PetDataTable<TData extends Pet, TValue>({
   columns,
   data,
   isLoading = false,
@@ -101,10 +102,10 @@ export function PetDataTable<TData, TValue>({
 
   // Get unique values for filters
   const breedOptions = Array.from(
-    new Set(data.map((pet: any) => pet.breed?.name).filter(Boolean)),
+    new Set(data.map((pet: Pet) => pet.breed?.name).filter(Boolean)),
   );
   const sizeOptions = Array.from(
-    new Set(data.map((pet: any) => pet.size).filter(Boolean)),
+    new Set(data.map((pet: Pet) => pet.size).filter(Boolean)),
   );
 
   // Pagination helpers
@@ -137,7 +138,7 @@ export function PetDataTable<TData, TValue>({
 
   // Bulk actions handlers
   const selectedRows = table.getFilteredSelectedRowModel().rows;
-  const selectedPets = selectedRows.map((row) => row.original as any);
+  const selectedPets = selectedRows.map((row) => row.original as Pet);
   const selectedIds = selectedPets.map((pet) => pet._id);
 
   const handleBulkDelete = async () => {
@@ -145,7 +146,7 @@ export function PetDataTable<TData, TValue>({
       await bulkDeletePets.mutateAsync(selectedIds);
       setRowSelection({});
     } catch (error) {
-      // Error handled in mutation
+      console.error('Failed to bulk delete pets:', error);
     }
   };
 
@@ -167,7 +168,7 @@ export function PetDataTable<TData, TValue>({
       });
       setRowSelection({});
     } catch (error) {
-      // Error handled in mutation
+      console.error('Failed to bulk update pet availability:', error);
     }
   };
 
@@ -251,15 +252,15 @@ export function PetDataTable<TData, TValue>({
             onValueChange={(value) =>
               table
                 .getColumn('isAvailable')
-                ?.setFilterValue(value === 'all' ? '' : value === 'available')
+                ?.setFilterValue(value === 'all' ? '' : value)
             }
             disabled={isLoading}
           >
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="available">Available</SelectItem>
               <SelectItem value="sold">Sold</SelectItem>
             </SelectContent>

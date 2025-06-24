@@ -2,6 +2,7 @@
  * Node modules
  */
 import { Outlet } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 /**
  * Components
@@ -45,8 +46,8 @@ const AdminLayout = () => {
                       {breadcrumb.isCurrentPage ? (
                         <BreadcrumbPage>{breadcrumb.label}</BreadcrumbPage>
                       ) : (
-                        <BreadcrumbLink href={breadcrumb.href}>
-                          {breadcrumb.label}
+                        <BreadcrumbLink asChild>
+                          <Link to={breadcrumb.href}>{breadcrumb.label}</Link>
                         </BreadcrumbLink>
                       )}
                     </BreadcrumbItem>

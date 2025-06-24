@@ -28,6 +28,7 @@ export interface Pet {
   isAvailable: boolean;
   createdAt: string;
   updatedAt: string;
+  sku: string;
 }
 
 export interface CreatePetPayload {
@@ -48,6 +49,7 @@ export interface CreatePetPayload {
   publishedDate: string;
   additionalInfo?: string;
   isAvailable: boolean;
+  sku: string;
 }
 
 export type UpdatePetPayload = Partial<CreatePetPayload>;

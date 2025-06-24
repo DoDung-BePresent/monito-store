@@ -47,6 +47,15 @@ import {
 } from '@/components/ui/pagination';
 import type { Pet } from '@/types/pet';
 import { cn } from '@/lib/utils';
+<<<<<<< Updated upstream
+=======
+import { TableSkeleton } from '@/components/ui/table-skeleton';
+import {
+  useBulkDeletePets,
+  useBulkUpdatePetAvailability,
+} from '@/hooks/usePets';
+import type { Pet } from '@/types/pet';
+>>>>>>> Stashed changes
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -90,6 +99,16 @@ export function PetDataTable<TData, TValue>({
     },
   });
 
+<<<<<<< Updated upstream
+=======
+  // Get unique values for filters
+  const breedOptions = Array.from(
+    new Set(data.map((pet: TData) => (pet as Pet).breed?.name).filter(Boolean)),
+  );
+  const sizeOptions = Array.from(
+    new Set(data.map((pet: TData) => (pet as Pet).size).filter(Boolean)),
+  );
+>>>>>>> Stashed changes
 
   const getBreedOptions = (data: Pet[]) => {
     const breeds = Array.from(new Set(data.map((pet) => pet.breed.name)));
@@ -128,6 +147,46 @@ export function PetDataTable<TData, TValue>({
     return pages;
   };
 
+<<<<<<< Updated upstream
+=======
+  // Bulk actions handlers
+  const selectedRows = table.getFilteredSelectedRowModel().rows;
+  const selectedPets = selectedRows.map((row) => row.original as Pet);
+  const selectedIds = selectedPets.map((pet) => pet._id);
+
+  const handleBulkDelete = async () => {
+    try {
+      await bulkDeletePets.mutateAsync(selectedIds);
+      setRowSelection({});
+    } catch {
+      // Error handled in mutation
+    }
+  };
+
+  const handleBulkUpdateAvailability = async (isAvailable: boolean) => {
+    const targetIds = selectedPets
+      .filter((pet) => pet.isAvailable !== isAvailable)
+      .map((pet) => pet._id);
+
+    if (targetIds.length === 0) {
+      const statusText = isAvailable ? 'available' : 'sold';
+      toast.info(`All selected pets are already ${statusText}`);
+      return;
+    }
+
+    try {
+      await bulkUpdateAvailability.mutateAsync({
+        ids: targetIds,
+        isAvailable,
+      });
+      setRowSelection({});
+    } catch {
+      // Error handled in mutation
+    }
+  };
+
+  // Show loading skeleton while loading
+>>>>>>> Stashed changes
   if (isLoading) {
     return (
       <div className={cn('w-full space-y-4', className)}>
@@ -210,16 +269,14 @@ export function PetDataTable<TData, TValue>({
               (table.getColumn('isAvailable')?.getFilterValue() as string) ?? ''
             }
             onValueChange={(value) =>
-              table
-                .getColumn('isAvailable')
-                ?.setFilterValue(value === 'all' ? '' : value === 'available')
+              table.getColumn('isAvailable')?.setFilterValue(value)
             }
           >
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="available">Available</SelectItem>
               <SelectItem value="sold">Sold</SelectItem>
             </SelectContent>

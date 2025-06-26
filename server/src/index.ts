@@ -26,6 +26,7 @@ import petRoute from './routes/petRoute';
 import breedRoute from './routes/breedRoute';
 import colorRoute from './routes/colorRoute';
 import categoryRoute from './routes/categoryRoute';
+import staffManagementRoute from './routes/staffManagementRoute';
 
 /**
  * App
@@ -63,6 +64,7 @@ app.use(`${BASE_PATH}/pets`, petRoute);
 app.use(`${BASE_PATH}/breeds`, breedRoute);
 app.use(`${BASE_PATH}/colors`, colorRoute);
 app.use(`${BASE_PATH}/categories`, categoryRoute);
+app.use(`${BASE_PATH}/staff-management`, staffManagementRoute);
 
 /**
  * Error Handler

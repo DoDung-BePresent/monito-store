@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import {
   Search,
   Plus,
   Edit,
   Trash2,
-  Shield,
   Users,
   CheckCircle,
-  AlertTriangle,
   Clock,
   MoreHorizontal,
-  Download,
-  Filter,
+  Eye,
+  RotateCcw,
+  Loader2,
 } from 'lucide-react';
 import {
   Card,
@@ -46,110 +46,186 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { 
+  staffService, 
+  type Staff, 
+  type StaffListResponse, 
+  type CreateStaffPayload, 
+  type UpdateStaffPayload 
+} from '@/services/staffService';
+import { AddStaffModal } from '@/components/admin/AddStaffModal';
+import { EditStaffModal } from '@/components/admin/EditStaffModal';
+import { StaffDetailModal } from '@/components/admin/StaffDetailModal';
 
 const StaffManagement = () => {
+  // State management
+  const [staffData, setStaffData] = useState<StaffListResponse | null>(null);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
 
-  const staffMembers = [
-    {
-      id: 1,
-      name: 'Mike Davis',
-      email: 'mike.davis@monito.com',
-      phone: '+1 (555) 345-6789',
-      department: 'Customer Service',
-      position: 'Senior Staff',
-      status: 'Active',
-      joinDate: '2023-12-01',
-      lastLogin: '2024-01-20 11:45',
-      permissions: ['products', 'orders', 'customers'],
-      avatar: '/api/placeholder/40/40',
-    },
-    {
-      id: 2,
-      name: 'Lisa Anderson',
-      email: 'lisa.anderson@monito.com',
-      phone: '+1 (555) 456-7890',
-      department: 'Product Management',
-      position: 'Product Manager',
-      status: 'Active',
-      joinDate: '2023-10-15',
-      lastLogin: '2024-01-20 09:30',
-      permissions: ['products', 'categories', 'inventory'],
-      avatar: '/api/placeholder/40/40',
-    },
-    {
-      id: 3,
-      name: 'Tom Wilson',
-      email: 'tom.wilson@monito.com',
-      phone: '+1 (555) 567-8901',
-      department: 'Operations',
-      position: 'Operations Manager',
-      status: 'Active',
-      joinDate: '2023-08-20',
-      lastLogin: '2024-01-19 16:20',
-      permissions: ['orders', 'shipping', 'inventory'],
-      avatar: '/api/placeholder/40/40',
-    },
-    {
-      id: 4,
-      name: 'Sarah Chen',
-      email: 'sarah.chen@monito.com',
-      phone: '+1 (555) 678-9012',
-      department: 'Customer Service',
-      position: 'Staff',
-      status: 'On Leave',
-      joinDate: '2024-01-10',
-      lastLogin: '2024-01-15 14:45',
-      permissions: ['customers', 'orders'],
-      avatar: '/api/placeholder/40/40',
-    },
-  ];
+  // Modal states
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  const filteredStaff = staffMembers.filter((staff) => {
-    const matchesSearch =
-      staff.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      staff.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      staff.department.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus =
-      statusFilter === 'all' ||
-      staff.status.toLowerCase().replace(' ', '') === statusFilter;
-
-    const matchesDepartment =
-      departmentFilter === 'all' ||
-      staff.department.toLowerCase().replace(' ', '') === departmentFilter;
-
-    return matchesSearch && matchesStatus && matchesDepartment;
-  });
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return 'bg-green-100 text-green-800';
-      case 'On Leave':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Inactive':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  // Fetch staff data
+  const fetchStaffData = async (page = 1, search = '', isActive?: boolean) => {
+    try {
+      setLoading(true);
+      const query = {
+        page,
+        limit: 10,
+        search: search || undefined,
+        isActive: isActive,
+      };
+      
+      const response = await staffService.getStaffs(query);
+      setStaffData(response);
+    } catch (error) {
+      toast.error('Failed to fetch staff data');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getDepartmentColor = (department: string) => {
-    switch (department) {
-      case 'Customer Service':
-        return 'bg-blue-100 text-blue-800';
-      case 'Product Management':
-        return 'bg-purple-100 text-purple-800';
-      case 'Operations':
-        return 'bg-orange-100 text-orange-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  // Initial data fetch
+  useEffect(() => {
+    fetchStaffData();
+  }, []);
+
+  // Handle search and filter changes
+  useEffect(() => {
+    const delayedFetch = setTimeout(() => {
+      const isActiveFilter = statusFilter === 'active' ? true 
+        : statusFilter === 'inactive' ? false 
+        : undefined;
+      
+      fetchStaffData(1, searchTerm, isActiveFilter);
+      setCurrentPage(1);
+    }, 300);
+
+    return () => clearTimeout(delayedFetch);
+  }, [searchTerm, statusFilter]);
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    const isActiveFilter = statusFilter === 'active' ? true 
+      : statusFilter === 'inactive' ? false 
+      : undefined;
+    fetchStaffData(page, searchTerm, isActiveFilter);
+  };
+
+  // Handle create staff
+  const handleCreateStaff = async (data: CreateStaffPayload) => {
+    try {
+      setActionLoading(true);
+      await staffService.createStaff(data);
+      toast.success('Staff member created successfully');
+      setAddModalOpen(false);
+      fetchStaffData(currentPage, searchTerm);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to create staff member');
+    } finally {
+      setActionLoading(false);
     }
   };
+
+  // Handle update staff
+  const handleUpdateStaff = async (data: UpdateStaffPayload) => {
+    if (!selectedStaff) return;
+    
+    try {
+      setActionLoading(true);
+      await staffService.updateStaff(selectedStaff._id, data);
+      toast.success('Staff member updated successfully');
+      setEditModalOpen(false);
+      setSelectedStaff(null);
+      fetchStaffData(currentPage, searchTerm);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to update staff member');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Handle delete staff
+  const handleDeleteStaff = async () => {
+    if (!selectedStaff) return;
+
+    try {
+      setActionLoading(true);
+      await staffService.deleteStaff(selectedStaff._id);
+      toast.success('Staff member deactivated successfully');
+      setDeleteDialogOpen(false);
+      setSelectedStaff(null);
+      fetchStaffData(currentPage, searchTerm);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to deactivate staff member');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Handle activate staff
+  const handleActivateStaff = async (staff: Staff) => {
+    try {
+      setActionLoading(true);
+      await staffService.activateStaff(staff._id);
+      toast.success('Staff member activated successfully');
+      fetchStaffData(currentPage, searchTerm);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to activate staff member');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const getStatusColor = (isActive: boolean) => {
+    return isActive 
+      ? 'bg-green-100 text-green-800'
+      : 'bg-red-100 text-red-800';
+  };
+
+  const formatDate = (date: Date | string | null) => {
+    if (!date) return 'Never';
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const formatDateTime = (date: Date | string | null) => {
+    if (!date) return 'Never';
+    return new Date(date).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  // Calculate stats
+  const totalStaff = staffData?.pagination.totalItems || 0;
+  const activeStaff = staffData?.staffs.filter(staff => staff.isActive).length || 0;
+  const inactiveStaff = totalStaff - activeStaff;
 
   return (
     <div className="space-y-6">
@@ -160,11 +236,7 @@ const StaffManagement = () => {
           <p className="text-gray-600">Manage staff accounts and permissions</p>
         </div>
         <div className="flex items-center space-x-3">
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export Staff
-          </Button>
-          <Button>
+          <Button onClick={() => setAddModalOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add Staff Member
           </Button>
@@ -181,8 +253,8 @@ const StaffManagement = () => {
             <Users className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">23</div>
-            <p className="text-xs text-green-600">+2 this month</p>
+            <div className="text-2xl font-bold">{totalStaff}</div>
+            <p className="text-xs text-gray-600">Total staff members</p>
           </CardContent>
         </Card>
 
@@ -194,34 +266,38 @@ const StaffManagement = () => {
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">21</div>
-            <p className="text-xs text-green-600">91% active rate</p>
+            <div className="text-2xl font-bold">{activeStaff}</div>
+            <p className="text-xs text-green-600">
+              {totalStaff > 0 ? Math.round((activeStaff / totalStaff) * 100) : 0}% active rate
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">
-              On Leave
+              Inactive Staff
             </CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
+            <Clock className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">2</div>
-            <p className="text-xs text-yellow-600">Temporary leave</p>
+            <div className="text-2xl font-bold">{inactiveStaff}</div>
+            <p className="text-xs text-red-600">Inactive accounts</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">
-              Departments
+              Current Page
             </CardTitle>
-            <Shield className="h-4 w-4 text-purple-600" />
+            <Users className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-gray-600">Active departments</p>
+            <div className="text-2xl font-bold">{currentPage}</div>
+            <p className="text-xs text-gray-600">
+              of {staffData?.pagination.totalPages || 0} pages
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -240,7 +316,7 @@ const StaffManagement = () => {
               <Search className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
               <Input
                 type="text"
-                placeholder="Search by name, email, or department..."
+                placeholder="Search by name or email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -254,27 +330,7 @@ const StaffManagement = () => {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="onleave">On Leave</SelectItem>
                 <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={departmentFilter}
-              onValueChange={setDepartmentFilter}
-            >
-              <SelectTrigger className="w-full md:w-[200px]">
-                <SelectValue placeholder="Filter by department" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Departments</SelectItem>
-                <SelectItem value="customerservice">
-                  Customer Service
-                </SelectItem>
-                <SelectItem value="productmanagement">
-                  Product Management
-                </SelectItem>
-                <SelectItem value="operations">Operations</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -288,127 +344,222 @@ const StaffManagement = () => {
             <div>
               <CardTitle>Staff Members</CardTitle>
               <CardDescription>
-                {filteredStaff.length} staff members found
+                {staffData?.staffs.length || 0} staff members found
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm">
-              <Filter className="mr-2 h-4 w-4" />
-              Advanced Filters
-            </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Staff Member</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Position</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Permissions</TableHead>
-                  <TableHead>Join Date</TableHead>
-                  <TableHead>Last Login</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredStaff.map((staff) => (
-                  <TableRow key={staff.id}>
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        <Avatar>
-                          <AvatarImage src={staff.avatar} alt={staff.name} />
-                          <AvatarFallback>
-                            {staff.name
-                              .split(' ')
-                              .map((n) => n[0])
-                              .join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{staff.name}</p>
-                          <p className="text-sm text-gray-600">{staff.email}</p>
-                          <p className="text-sm text-gray-500">{staff.phone}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <Badge className={getDepartmentColor(staff.department)}>
-                        {staff.department}
-                      </Badge>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="font-medium">{staff.position}</div>
-                    </TableCell>
-
-                    <TableCell>
-                      <Badge className={getStatusColor(staff.status)}>
-                        {staff.status}
-                      </Badge>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {staff.permissions.slice(0, 2).map((permission) => (
-                          <Badge
-                            key={permission}
-                            variant="outline"
-                            className="text-xs"
-                          >
-                            {permission}
-                          </Badge>
-                        ))}
-                        {staff.permissions.length > 2 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{staff.permissions.length - 2}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="text-sm">{staff.joinDate}</div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="text-sm">{staff.lastLogin}</div>
-                    </TableCell>
-
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit Staff
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Shield className="mr-2 h-4 w-4" />
-                            Manage Permissions
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Remove Staff
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="ml-2">Loading staff data...</span>
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Staff Member</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Last Login</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {staffData?.staffs.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        <div className="flex flex-col items-center gap-2">
+                          <Users className="h-8 w-8 text-gray-400" />
+                          <p className="text-gray-500">No staff members found</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    staffData?.staffs.map((staff) => (
+                      <TableRow key={staff._id}>
+                        <TableCell>
+                          <div className="flex items-center space-x-3">
+                            <Avatar>
+                              <AvatarImage src={staff.avatarUrl || ''} alt={staff.name} />
+                              <AvatarFallback>
+                                {staff.name.split(' ').map((n) => n[0]).join('')}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{staff.name}</p>
+                              <p className="text-sm text-gray-600">{staff.email}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">
+                            {staff.role}
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell>
+                          <Badge className={getStatusColor(staff.isActive)}>
+                            {staff.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="text-sm">{formatDate(staff.createdAt)}</div>
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="text-sm">{formatDateTime(staff.lastLogin)}</div>
+                        </TableCell>
+
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedStaff(staff);
+                                  setDetailModalOpen(true);
+                                }}
+                              >
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedStaff(staff);
+                                  setEditModalOpen(true);
+                                }}
+                              >
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit Staff
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              {staff.isActive ? (
+                                <DropdownMenuItem 
+                                  className="text-red-600"
+                                  onClick={() => {
+                                    setSelectedStaff(staff);
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Deactivate
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem 
+                                  className="text-green-600"
+                                  onClick={() => handleActivateStaff(staff)}
+                                  disabled={actionLoading}
+                                >
+                                  <RotateCcw className="mr-2 h-4 w-4" />
+                                  Activate
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+
+              {/* Pagination */}
+              {staffData && staffData.pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between px-4 py-3 border-t">
+                  <div className="text-sm text-gray-700">
+                    Showing {((currentPage - 1) * staffData.pagination.itemsPerPage) + 1} to{' '}
+                    {Math.min(currentPage * staffData.pagination.itemsPerPage, staffData.pagination.totalItems)} of{' '}
+                    {staffData.pagination.totalItems} results
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-sm text-gray-700">
+                      Page {currentPage} of {staffData.pagination.totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === staffData.pagination.totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* Modals */}
+      <AddStaffModal
+        isOpen={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        onSubmit={handleCreateStaff}
+        isLoading={actionLoading}
+      />
+
+      <EditStaffModal
+        isOpen={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setSelectedStaff(null);
+        }}
+        onSubmit={handleUpdateStaff}
+        staff={selectedStaff}
+        isLoading={actionLoading}
+      />
+
+      <StaffDetailModal
+        isOpen={detailModalOpen}
+        onClose={() => {
+          setDetailModalOpen(false);
+          setSelectedStaff(null);
+        }}
+        staff={selectedStaff}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deactivate Staff Member</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to deactivate {selectedStaff?.name}? 
+              This will prevent them from accessing the system, but their account data will be preserved.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteStaff}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={actionLoading}
+            >
+              {actionLoading ? 'Deactivating...' : 'Deactivate'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

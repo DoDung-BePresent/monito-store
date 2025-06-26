@@ -17,6 +17,7 @@ import {
   Bell,
   CreditCard,
 } from 'lucide-react';
+import { useStaffCount } from '@/hooks/useStaffCount';
 
 import {
   Sidebar,
@@ -43,6 +44,7 @@ import { Badge } from '@/components/ui/badge';
 
 const AdminSidebar = () => {
   const location = useLocation();
+  const { totalCount: staffCount, loading: staffLoading } = useStaffCount();
 
   const navigationGroups = [
     {
@@ -66,7 +68,7 @@ const AdminSidebar = () => {
           name: 'Staff Management',
           href: '/admin/staff',
           icon: UserPlus,
-          badge: '23',
+          badge: staffLoading ? '...' : staffCount > 999 ? '999+' : staffCount.toString(),
         },
         { name: 'Roles & Permissions', href: '/admin/roles', icon: Shield },
       ],

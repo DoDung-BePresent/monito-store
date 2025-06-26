@@ -10,7 +10,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { ChevronDown, Plus, Search } from 'lucide-react';
+import { ChevronDown, Plus, Search, MoreVertical, Copy, Eye, Edit as EditIcon, Trash } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,8 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import {
@@ -45,22 +47,35 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { cn } from '@/lib/utils';
+import BreedCreateDialog from './BreedCreateDialog';
+import BreedEditDialog from './BreedEditDialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   className?: string;
+  onCreate?: (...args: any[]) => void;
+  onUpdate?: (...args: any[]) => void;
+  onDelete?: (...args: any[]) => void;
 }
 
-export function BreedDataTable<TData, TValue>({
+export function BreedDataTable<TData extends { _id: string; name: string; description?: string }, TValue>({
   columns,
   data,
   className,
+  onCreate,
+  onUpdate,
+  onDelete,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
+  const [openCreate, setOpenCreate] = useState(false);
+  const [editBreed, setEditBreed] = useState<TData | null>(null);
+  const [deleteBreed, setDeleteBreed] = useState<TData | null>(null);
 
   const table = useReactTable({
     data,
@@ -160,7 +175,7 @@ export function BreedDataTable<TData, TValue>({
                 })}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button>
+          <Button onClick={() => setOpenCreate(true)}>
             <Plus className="h-4 w-4" />
             Add Breed
           </Button>
@@ -195,6 +210,9 @@ export function BreedDataTable<TData, TValue>({
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
+                  if (header.id === 'description') {
+                    return <TableHead key={header.id} style={{ maxWidth: 250 }}>Description</TableHead>;
+                  }
                   return (
                     <TableHead key={header.id}>
                       {header.isPlaceholder
@@ -206,6 +224,7 @@ export function BreedDataTable<TData, TValue>({
                     </TableHead>
                   );
                 })}
+                <TableHead>Actions</TableHead>
               </TableRow>
             ))}
           </TableHeader>
@@ -217,20 +236,67 @@ export function BreedDataTable<TData, TValue>({
                   data-state={row.getIsSelected() && 'selected'}
                   className="hover:bg-muted/50"
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </TableCell>
-                  ))}
+                  {row.getVisibleCells().map((cell) => {
+                    if (cell.column.id === 'description') {
+                      return (
+                        <TableCell key={cell.id} style={{ maxWidth: 250 }}>
+                          <span className="truncate block" title={cell.getValue() as string}>
+                            {cell.getValue() as string}
+                          </span>
+                        </TableCell>
+                      );
+                    }
+                    return (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </TableCell>
+                    );
+                  })}
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="w-5 h-5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            navigator.clipboard.writeText(row.original._id);
+                            toast.success('Copied breed ID!');
+                          }}
+                        >
+                          <Copy className="w-4 h-4 mr-2" /> Copy breed ID
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {/* Xử lý view pets nếu cần */}}
+                        >
+                          <Eye className="w-4 h-4 mr-2" /> View pets
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => setEditBreed(row.original)}
+                        >
+                          <EditIcon className="w-4 h-4 mr-2" /> Edit breed
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setDeleteBreed(row.original)}
+                          className="text-red-600"
+                        >
+                          <Trash className="w-4 h-4 mr-2" /> Delete breed
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={columns.length + 1}
                   className="h-24 text-center"
                 >
                   No breeds found.
@@ -311,6 +377,34 @@ export function BreedDataTable<TData, TValue>({
           )}
         </div>
       </div>
+
+      <BreedCreateDialog
+        open={openCreate}
+        onClose={() => setOpenCreate(false)}
+        onCreate={onCreate ?? (() => {})}
+      />
+      <BreedEditDialog
+        open={!!editBreed}
+        onClose={() => setEditBreed(null)}
+        breed={editBreed}
+        onUpdate={onUpdate ?? (() => {})}
+      />
+      <Dialog open={!!deleteBreed} onOpenChange={() => setDeleteBreed(null)}>
+        <DialogContent>
+          <DialogTitle>Delete Breed</DialogTitle>
+          <div>Are you sure you want to delete <b>{deleteBreed?.name}</b>?</div>
+          <div className="flex gap-2 justify-end mt-4">
+            <Button variant="destructive" onClick={() => {
+              if (deleteBreed && onDelete) {
+                onDelete(deleteBreed._id);
+                toast.success('Breed deleted');
+                setDeleteBreed(null);
+              }
+            }}>Delete</Button>
+            <Button variant="outline" onClick={() => setDeleteBreed(null)}>Cancel</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

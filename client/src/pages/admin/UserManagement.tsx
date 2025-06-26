@@ -15,6 +15,7 @@ import {
   Calendar,
   MoreHorizontal,
 } from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
   Card,
   CardContent,
@@ -49,126 +50,74 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { userService } from '@/services/userService';
+import UserCreateDialog from './UserCreateDialog';
+import UserEditDialog from './UserEditDialog';
+import { toast } from 'sonner';
 
 const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [openCreate, setOpenCreate] = useState(false);
+  const [editUser, setEditUser] = useState(null);
+  const [deleteUser, setDeleteUser] = useState(null);
+  const queryClient = useQueryClient();
 
-  const users = [
-    {
-      id: 1,
-      name: 'John Smith',
-      email: 'john.smith@email.com',
-      phone: '+1 (555) 123-4567',
-      role: 'Customer',
-      status: 'Active',
-      joinDate: '2024-01-15',
-      lastLogin: '2024-01-20 14:30',
-      orders: 12,
-      totalSpent: 1250.0,
-      avatar: '/api/placeholder/40/40',
+  // Fetch users
+  const { data, isLoading } = useQuery({
+    queryKey: ['users'],
+    queryFn: userService.getUsers,
+  });
+  const users = data?.data || [];
+
+  // Mutations
+  const createUser = useMutation({
+    mutationFn: userService.createUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast.success('User created');
     },
-    {
-      id: 2,
-      name: 'Sarah Johnson',
-      email: 'sarah.j@email.com',
-      phone: '+1 (555) 234-5678',
-      role: 'Customer',
-      status: 'Active',
-      joinDate: '2024-01-10',
-      lastLogin: '2024-01-19 09:15',
-      orders: 8,
-      totalSpent: 850.0,
-      avatar: '/api/placeholder/40/40',
+  });
+  const updateUser = useMutation({
+    mutationFn: ({ id, data }) => userService.updateUser(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast.success('User updated');
     },
-    {
-      id: 3,
-      name: 'Mike Davis',
-      email: 'mike.davis@email.com',
-      phone: '+1 (555) 345-6789',
-      role: 'Staff',
-      status: 'Active',
-      joinDate: '2023-12-01',
-      lastLogin: '2024-01-20 11:45',
-      orders: 0,
-      totalSpent: 0,
-      avatar: '/api/placeholder/40/40',
+  });
+  const deleteUserMutation = useMutation({
+    mutationFn: (id) => userService.deleteUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast.success('User deleted');
     },
-    {
-      id: 4,
-      name: 'Emily Brown',
-      email: 'emily.brown@email.com',
-      phone: '+1 (555) 456-7890',
-      role: 'Customer',
-      status: 'Suspended',
-      joinDate: '2024-01-05',
-      lastLogin: '2024-01-18 16:22',
-      orders: 3,
-      totalSpent: 420.0,
-      avatar: '/api/placeholder/40/40',
-    },
-    {
-      id: 5,
-      name: 'Alex Wilson',
-      email: 'alex.wilson@email.com',
-      phone: '+1 (555) 567-8901',
-      role: 'Customer',
-      status: 'Inactive',
-      joinDate: '2023-11-20',
-      lastLogin: '2023-12-15 10:30',
-      orders: 15,
-      totalSpent: 2100.0,
-      avatar: '/api/placeholder/40/40',
-    },
-  ];
+  });
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.phone.includes(searchTerm);
-
+      (user.phone || '').includes(searchTerm);
     const matchesStatus =
-      statusFilter === 'all' || user.status.toLowerCase() === statusFilter;
-
+      statusFilter === 'all' || (user.isActive ? 'active' : 'inactive') === statusFilter;
     const matchesRole =
       roleFilter === 'all' || user.role.toLowerCase() === roleFilter;
-
     return matchesSearch && matchesStatus && matchesRole;
   });
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'Suspended':
-        return <Ban className="h-4 w-4 text-red-600" />;
-      case 'Inactive':
-        return <AlertTriangle className="h-4 w-4 text-yellow-600" />;
-      default:
-        return null;
-    }
+  const getStatusIcon = (isActive) => {
+    return isActive ? <CheckCircle className="h-4 w-4 text-green-600" /> : <Ban className="h-4 w-4 text-red-600" />;
   };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return 'bg-green-100 text-green-800';
-      case 'Suspended':
-        return 'bg-red-100 text-red-800';
-      case 'Inactive':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const getStatusColor = (isActive) => {
+    return isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
   };
-
-  const getRoleColor = (role: string) => {
+  const getRoleColor = (role) => {
     switch (role) {
-      case 'Staff':
+      case 'staff':
         return 'bg-blue-100 text-blue-800';
-      case 'Admin':
+      case 'admin':
         return 'bg-purple-100 text-purple-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -190,7 +139,7 @@ const UserManagement = () => {
             <Download className="mr-2 h-4 w-4" />
             Export Users
           </Button>
-          <Button>
+          <Button onClick={() => setOpenCreate(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add User
           </Button>
@@ -333,11 +282,11 @@ const UserManagement = () => {
               </TableHeader>
               <TableBody>
                 {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
+                  <TableRow key={user._id}>
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <Avatar>
-                          <AvatarImage src={user.avatar} alt={user.name} />
+                          <AvatarImage src={user.avatarUrl} alt={user.name} />
                           <AvatarFallback>
                             {user.name
                               .split(' ')
@@ -360,7 +309,7 @@ const UserManagement = () => {
                         </div>
                         <div className="flex items-center text-sm text-gray-600">
                           <Phone className="mr-1 h-3 w-3 text-gray-400" />
-                          {user.phone}
+                          {user.phone || ''}
                         </div>
                       </div>
                     </TableCell>
@@ -373,9 +322,9 @@ const UserManagement = () => {
 
                     <TableCell>
                       <div className="flex items-center space-x-2">
-                        {getStatusIcon(user.status)}
-                        <Badge className={getStatusColor(user.status)}>
-                          {user.status}
+                        {getStatusIcon(user.isActive)}
+                        <Badge className={getStatusColor(user.isActive)}>
+                          {user.isActive ? 'Active' : 'Inactive'}
                         </Badge>
                       </div>
                     </TableCell>
@@ -384,22 +333,22 @@ const UserManagement = () => {
                       <div className="space-y-1">
                         <div className="flex items-center text-sm">
                           <Calendar className="mr-1 h-3 w-3 text-gray-400" />
-                          Joined {user.joinDate}
+                          Joined {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : ''}
                         </div>
                         <div className="text-sm text-gray-600">
-                          Last login: {user.lastLogin}
+                          Last login: {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : ''}
                         </div>
                       </div>
                     </TableCell>
 
                     <TableCell className="text-center">
-                      <div className="font-medium">{user.orders}</div>
+                      <div className="font-medium">{user.orders || 0}</div>
                       <div className="text-sm text-gray-600">orders</div>
                     </TableCell>
 
                     <TableCell className="text-center">
                       <div className="font-medium">
-                        ${user.totalSpent.toFixed(2)}
+                        ${user.totalSpent ? user.totalSpent.toFixed(2) : '0.00'}
                       </div>
                       <div className="text-sm text-gray-600">total</div>
                     </TableCell>
@@ -413,32 +362,12 @@ const UserManagement = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setEditUser(user)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Edit User
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem>
-                            <Mail className="mr-2 h-4 w-4" />
-                            Send Email
-                          </DropdownMenuItem>
-                          {user.status === 'Active' ? (
-                            <DropdownMenuItem className="text-red-600">
-                              <Ban className="mr-2 h-4 w-4" />
-                              Suspend User
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem className="text-green-600">
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                              Activate User
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600">
+                          <DropdownMenuItem onClick={() => setDeleteUser(user)} className="text-red-600">
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete User
                           </DropdownMenuItem>
@@ -452,6 +381,33 @@ const UserManagement = () => {
           </div>
         </CardContent>
       </Card>
+      <UserCreateDialog
+        open={openCreate}
+        onClose={() => setOpenCreate(false)}
+        onCreate={createUser.mutate}
+      />
+      <UserEditDialog
+        open={!!editUser}
+        onClose={() => setEditUser(null)}
+        user={editUser}
+        onUpdate={updateUser.mutate}
+      />
+      {/* Delete confirm dialog */}
+      <Dialog open={!!deleteUser} onOpenChange={() => setDeleteUser(null)}>
+        <DialogContent>
+          <DialogTitle>Delete User</DialogTitle>
+          <div>Are you sure you want to delete <b>{deleteUser?.name}</b>?</div>
+          <div className="flex gap-2 justify-end mt-4">
+            <Button variant="destructive" onClick={() => {
+              if (deleteUser) {
+                deleteUserMutation.mutate(deleteUser._id);
+                setDeleteUser(null);
+              }
+            }}>Delete</Button>
+            <Button variant="outline" onClick={() => setDeleteUser(null)}>Cancel</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

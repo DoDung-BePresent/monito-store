@@ -33,9 +33,11 @@ export const authService = {
     return response.data;
   },
 
-  async getCurrentUser(): Promise<ApiResponse<{ user: User }>> {
-    const response =
-      await API.get<ApiResponse<{ user: User }>>('/user/current-user');
-    return response.data;
+  async getCurrentUser(): Promise<ApiResponse<{ user: User | null }>> {
+    const response = await API.get<ApiResponse<{ user: User }>>('/user/current-user');
+    if (response.data && typeof response.data === 'object' && 'user' in response.data) {
+      return { data: { user: response.data.user as User | null } };
+    }
+    return { data: { user: null } };
   },
 };

@@ -120,43 +120,4 @@ export const breedColumns: ColumnDef<Breed>[] = [
       return <div className="text-sm">{date.toLocaleDateString('vi-VN')}</div>;
     },
   },
-  {
-    id: 'actions',
-    header: 'Actions',
-    cell: ({ row }) => {
-      const breed = row.original;
-
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(breed._id)}
-            >
-              Copy breed ID
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="flex items-center">
-              <Eye className="h-4 w-4" />
-              View pets
-            </DropdownMenuItem>
-            <DropdownMenuItem className="flex items-center">
-              <Edit className="h-4 w-4" />
-              Edit breed
-            </DropdownMenuItem>
-            <DropdownMenuItem className="flex items-center text-red-600">
-              <Trash2 className="h-4 w-4" />
-              Delete breed
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    },
-  },
 ];

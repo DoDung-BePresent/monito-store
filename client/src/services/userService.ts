@@ -19,15 +19,15 @@ export interface SummaryResponse {
 }
 export interface UserResponse  {
   id: string;
-  fullName: string;
+  name: string;
   email: string;
   phone: string;
+  orders : number
   role: "Customer" | "Staff" | "Admin" | string;
   isActive: boolean;
   avatar?: string; 
-  joinedDate: string; 
-  lastLogin: string; 
-  totalOrders: number;
+  joinDate: string; 
+  lastLogin: string;
   totalSpent: number;
 }
 export const fetchSummary = async (): Promise<SummaryResponse> => {

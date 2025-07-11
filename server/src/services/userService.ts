@@ -58,7 +58,7 @@ export const userService = {
       UserModel.countDocuments(),
       UserModel.countDocuments({ createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } }),
 
-      UserModel.countDocuments({ status: "active" }),
+      UserModel.countDocuments({ isActive: true }),
       UserModel.countDocuments({
         status: "active",
         createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
@@ -105,5 +105,8 @@ async getAllUsers() {
   } catch (error) {
     throw new Error("Failed to fetch all users");
   }
+},
+async suspendUser () {
+  
 }
 };

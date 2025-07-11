@@ -35,4 +35,75 @@ export const userService = {
       session.endSession();
     }
   },
+
+ async getSummary() {
+    const now = new Date();
+    const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+    const startOfThisWeek = new Date(now);
+    startOfThisWeek.setDate(now.getDate() - now.getDay());
+
+    const [
+      totalUsers,
+      totalUsersLastMonth,
+      activeUsers,
+      activeUsersLastMonth,
+      suspendedUsers,
+      suspendedUsersThisWeek,
+      newUsersThisMonth,
+      newUsersLastMonth
+    ] = await Promise.all([
+      UserModel.countDocuments(),
+      UserModel.countDocuments({ createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } }),
+
+      UserModel.countDocuments({ status: "active" }),
+      UserModel.countDocuments({
+        status: "active",
+        createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
+      }),
+
+      UserModel.countDocuments({ status: "suspended" }),
+      UserModel.countDocuments({
+        status: "suspended",
+        createdAt: { $gte: startOfThisWeek },
+      }),
+
+      UserModel.countDocuments({ createdAt: { $gte: startOfThisMonth } }),
+      UserModel.countDocuments({ createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } })
+    ]);
+
+    const percent = (current: number, prev: number) => {
+      if (prev === 0) return 100;
+      return Math.round(((current - prev) / prev) * 100);
+    };
+
+    return {
+      totalUsers: {
+        count: totalUsers,
+        percentChange: percent(totalUsers, totalUsersLastMonth),
+      },
+      activeUsers: {
+        count: activeUsers,
+        percentChange: percent(activeUsers, activeUsersLastMonth),
+      },
+      suspendedUsers: {
+        count: suspendedUsers,
+        weeklyChange: suspendedUsersThisWeek,
+      },
+      newUsersThisMonth: {
+        count: newUsersThisMonth,
+        percentChange: percent(newUsersThisMonth, newUsersLastMonth),
+      }
+    };
+  },
+async getAllUsers() {
+  try {
+    const users = await UserModel.find().sort({ createdAt: -1 });
+    return users;
+  } catch (error) {
+    throw new Error("Failed to fetch all users");
+  }
+}
 };

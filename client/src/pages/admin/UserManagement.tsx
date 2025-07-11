@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState , useEffect  } from 'react';
 import {
   Search,
   Eye,
@@ -49,79 +49,31 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {fetchSummary,fetchUsers} from '@/services/userService'
+import { SummaryResponse ,UserResponse } from '../../services/userService';
 
 const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
+const [users, setUsers] = useState<UserResponse[]>([]); // dùng dữ liệu thực
+const [summary, setSummary] = useState<SummaryResponse | null>(null);
 
-  const users = [
-    {
-      id: 1,
-      name: 'John Smith',
-      email: 'john.smith@email.com',
-      phone: '+1 (555) 123-4567',
-      role: 'Customer',
-      status: 'Active',
-      joinDate: '2024-01-15',
-      lastLogin: '2024-01-20 14:30',
-      orders: 12,
-      totalSpent: 1250.0,
-      avatar: '/api/placeholder/40/40',
-    },
-    {
-      id: 2,
-      name: 'Sarah Johnson',
-      email: 'sarah.j@email.com',
-      phone: '+1 (555) 234-5678',
-      role: 'Customer',
-      status: 'Active',
-      joinDate: '2024-01-10',
-      lastLogin: '2024-01-19 09:15',
-      orders: 8,
-      totalSpent: 850.0,
-      avatar: '/api/placeholder/40/40',
-    },
-    {
-      id: 3,
-      name: 'Mike Davis',
-      email: 'mike.davis@email.com',
-      phone: '+1 (555) 345-6789',
-      role: 'Staff',
-      status: 'Active',
-      joinDate: '2023-12-01',
-      lastLogin: '2024-01-20 11:45',
-      orders: 0,
-      totalSpent: 0,
-      avatar: '/api/placeholder/40/40',
-    },
-    {
-      id: 4,
-      name: 'Emily Brown',
-      email: 'emily.brown@email.com',
-      phone: '+1 (555) 456-7890',
-      role: 'Customer',
-      status: 'Suspended',
-      joinDate: '2024-01-05',
-      lastLogin: '2024-01-18 16:22',
-      orders: 3,
-      totalSpent: 420.0,
-      avatar: '/api/placeholder/40/40',
-    },
-    {
-      id: 5,
-      name: 'Alex Wilson',
-      email: 'alex.wilson@email.com',
-      phone: '+1 (555) 567-8901',
-      role: 'Customer',
-      status: 'Inactive',
-      joinDate: '2023-11-20',
-      lastLogin: '2023-12-15 10:30',
-      orders: 15,
-      totalSpent: 2100.0,
-      avatar: '/api/placeholder/40/40',
-    },
-  ];
+useEffect(() => {
+  const loadData = async () => {
+    try {
+      const [summaryData, userList] = await Promise.all([
+        fetchSummary(),
+        fetchUsers()
+      ]);
+      setSummary(summaryData);
+      setUsers(userList);
+    } catch (err) {
+      console.error("Failed to fetch data:", err);
+    }
+  };
+  loadData();
+}, []);
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
@@ -166,9 +118,9 @@ const UserManagement = () => {
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'Staff':
+      case 'staff':
         return 'bg-blue-100 text-blue-800';
-      case 'Admin':
+      case 'admin':
         return 'bg-purple-100 text-purple-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -190,67 +142,99 @@ const UserManagement = () => {
             <Download className="mr-2 h-4 w-4" />
             Export Users
           </Button>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add User
-          </Button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Total Users
-            </CardTitle>
-            <CheckCircle className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">2,847</div>
-            <p className="text-xs text-green-600">+12% from last month</p>
-          </CardContent>
-        </Card>
+{/* Stats Cards */}
+{!summary ||
+ !summary.totalUsers ||
+ !summary.activeUsers ||
+ !summary.suspendedUsers ||
+ !summary.newUsersThisMonth ? (
+  <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+    {Array(4).fill(0).map((_, i) => (
+      <Card key={i}>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-gray-400">Loading...</CardTitle>
+          <div className="h-4 w-4 bg-gray-300 rounded-full animate-pulse" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold bg-gray-200 h-6 w-1/2 rounded animate-pulse" />
+          <p className="text-xs text-gray-400 mt-2">Fetching data...</p>
+        </CardContent>
+      </Card>
+    ))}
+  </div>
+) : (
+  <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+    {/* Total Users */}
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-gray-600">Total Users</CardTitle>
+        <CheckCircle className="h-4 w-4 text-blue-600" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">
+          {summary.totalUsers.count.toLocaleString()}
+        </div>
+        <p className="text-xs text-green-600">
+          {`${summary.totalUsers.percentChange >= 0 ? '+' : ''}${summary.totalUsers.percentChange}% from last month`}
+        </p>
+      </CardContent>
+    </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Active Users
-            </CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">2,456</div>
-            <p className="text-xs text-green-600">+8% from last month</p>
-          </CardContent>
-        </Card>
+    {/* Active Users */}
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-gray-600">Active Users</CardTitle>
+        <CheckCircle className="h-4 w-4 text-green-600" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">
+          {summary.activeUsers.count.toLocaleString()}
+        </div>
+        <p className="text-xs text-green-600">
+          {`${summary.activeUsers.percentChange >= 0 ? '+' : ''}${summary.activeUsers.percentChange}% from last month`}
+        </p>
+      </CardContent>
+    </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Suspended
-            </CardTitle>
-            <Ban className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">23</div>
-            <p className="text-xs text-red-600">+2 this week</p>
-          </CardContent>
-        </Card>
+    {/* Suspended */}
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-gray-600">Suspended</CardTitle>
+        <Ban className="h-4 w-4 text-red-600" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">
+          {summary.suspendedUsers.count.toLocaleString()}
+        </div>
+        <p className="text-xs text-red-600">
+          +{summary.suspendedUsers.weeklyChange} this week
+        </p>
+      </CardContent>
+    </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              New This Month
-            </CardTitle>
-            <Plus className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">368</div>
-            <p className="text-xs text-green-600">+15% from last month</p>
-          </CardContent>
-        </Card>
-      </div>
+    {/* New This Month */}
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-gray-600">New This Month</CardTitle>
+        <Plus className="h-4 w-4 text-blue-600" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">
+          {summary.newUsersThisMonth.count.toLocaleString()}
+        </div>
+        <p className="text-xs text-green-600">
+          {`${summary.newUsersThisMonth.percentChange >= 0 ? '+' : ''}${summary.newUsersThisMonth.percentChange}% from last month`}
+        </p>
+      </CardContent>
+    </Card>
+  </div>
+)}
+
+
+
 
       {/* Filters */}
       <Card>
@@ -301,148 +285,149 @@ const UserManagement = () => {
       </Card>
 
       {/* User Table */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>User Accounts</CardTitle>
-              <CardDescription>
-                {filteredUsers.length} users found
-              </CardDescription>
-            </div>
-            <Button variant="outline" size="sm">
-              <Filter className="mr-2 h-4 w-4" />
-              More Filters
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Activity</TableHead>
-                  <TableHead>Orders</TableHead>
-                  <TableHead>Total Spent</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        <Avatar>
-                          <AvatarImage src={user.avatar} alt={user.name} />
-                          <AvatarFallback>
-                            {user.name
-                              .split(' ')
-                              .map((n) => n[0])
-                              .join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{user.name}</p>
-                          <p className="text-sm text-gray-600">{user.email}</p>
-                        </div>
-                      </div>
-                    </TableCell>
+<Card>
+  <CardHeader>
+    <div className="flex items-center justify-between">
+      <div>
+        <CardTitle>User Accounts</CardTitle>
+        <CardDescription>
+          {filteredUsers.length} users found
+        </CardDescription>
+      </div>
+      <Button variant="outline" size="sm">
+        <Filter className="mr-2 h-4 w-4" />
+        More Filters
+      </Button>
+    </div>
+  </CardHeader>
+  <CardContent>
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>User</TableHead>
+            <TableHead>Contact</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Activity</TableHead>
+            <TableHead>Orders</TableHead>
+            <TableHead>Total Spent</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredUsers.map((user) => (
+            <TableRow key={user.id}>
+              <TableCell>
+                <div className="flex items-center space-x-3">
+                  <Avatar>
+                    <AvatarImage src={user.avatar} alt={user.name} />
+                    <AvatarFallback>
+                      {user.name?.split(" ").map((n) => n[0]).join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{user.name}</p>
+                    <p className="text-sm text-gray-600">{user.email}</p>
+                  </div>
+                </div>
+              </TableCell>
 
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex items-center text-sm">
-                          <Mail className="mr-1 h-3 w-3 text-gray-400" />
-                          {user.email}
-                        </div>
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Phone className="mr-1 h-3 w-3 text-gray-400" />
-                          {user.phone}
-                        </div>
-                      </div>
-                    </TableCell>
+              <TableCell>
+                <div className="space-y-1">
+                  <div className="flex items-center text-sm">
+                    <Mail className="mr-1 h-3 w-3 text-gray-400" />
+                    {user.email}
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Phone className="mr-1 h-3 w-3 text-gray-400" />
+                    {user.phone}
+                  </div>
+                </div>
+              </TableCell>
 
-                    <TableCell>
-                      <Badge className={getRoleColor(user.role)}>
-                        {user.role}
-                      </Badge>
-                    </TableCell>
+              <TableCell>
+                <Badge className={getRoleColor(user.role)}>
+                  {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                </Badge>
+              </TableCell>
 
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        {getStatusIcon(user.status)}
-                        <Badge className={getStatusColor(user.status)}>
-                          {user.status}
-                        </Badge>
-                      </div>
-                    </TableCell>
+<TableCell>
+  <div className="flex items-center space-x-2">
+    {getStatusIcon(user.isActive ? "Active" : "Suspended")}
+    <Badge className={getStatusColor(user.isActive ? "Active" : "Suspended")}>
+      {user.isActive ? "Active" : "Suspended"}
+    </Badge>
+  </div>
+</TableCell>  
 
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex items-center text-sm">
-                          <Calendar className="mr-1 h-3 w-3 text-gray-400" />
-                          Joined {user.joinDate}
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          Last login: {user.lastLogin}
-                        </div>
-                      </div>
-                    </TableCell>
+              <TableCell>
+                <div className="space-y-1">
+                  <div className="flex items-center text-sm">
+                    <Calendar className="mr-1 h-3 w-3 text-gray-400" />
+                    Joined{" "}
+                    {user.joinDate
+                      ? new Date(user.joinDate).toLocaleDateString("vi-VN")
+                      : "N/A"}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    Last login:{" "}
+                    {user.lastLogin
+                      ? new Date(user.lastLogin).toLocaleDateString("vi-VN")
+                      : "N/A"}
+                  </div>
+                </div>
+              </TableCell>
 
-                    <TableCell className="text-center">
-                      <div className="font-medium">{user.orders}</div>
-                      <div className="text-sm text-gray-600">orders</div>
-                    </TableCell>
+              <TableCell className="text-center">
+                <div className="font-medium">{user.orders}</div>
+                <div className="text-sm text-gray-600">orders</div>
+              </TableCell>
 
-                    <TableCell className="text-center">
-                      <div className="font-medium">
-                        ${user.totalSpent.toFixed(2)}
-                      </div>
-                      <div className="text-sm text-gray-600">total</div>
-                    </TableCell>
+              <TableCell className="text-center">
+                <div className="font-medium">
+                  ${user.totalSpent?.toFixed(2) ?? "0.00"}
+                </div>
+                <div className="text-sm text-gray-600">total</div>
+              </TableCell>
 
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Details
-                          </DropdownMenuItem>
-                          {user.status === 'Active' ? (
-                            <DropdownMenuItem className="text-red-600">
-                              <Ban className="mr-2 h-4 w-4" />
-                              Suspend User
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem className="text-green-600">
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                              Activate User
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete User
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+              <TableCell className="text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuItem>
+                      <Eye className="mr-2 h-4 w-4" />
+                      View Details
+                    </DropdownMenuItem>
+                    {user.status === "active" ? (
+                      <DropdownMenuItem className="text-red-600">
+                        <Ban className="mr-2 h-4 w-4" />
+                        Suspend User
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem className="text-green-600">
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Activate User
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  </CardContent>
+</Card>
+
+
     </div>
   );
 };

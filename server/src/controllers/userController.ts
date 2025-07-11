@@ -30,4 +30,35 @@ export const userController = {
       next(error);
     }
   },
+  
+    async getUserSummary(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const summary = await userService.getSummary();
+
+      res.status(STATUS_CODE.OK).json({
+        data: summary,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+ async getAllUsers(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const data = await userService.getAllUsers();
+
+    res.status(STATUS_CODE.OK).json({
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+}
 };

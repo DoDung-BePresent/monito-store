@@ -26,7 +26,7 @@ export const userService = {
         if (!user) {
           throw new NotFoundException('User not found');
         }
-        
+
         return user;
       });
     } catch (error) {
@@ -36,7 +36,7 @@ export const userService = {
     }
   },
 
- async getSummary() {
+  async getSummary() {
     const now = new Date();
     const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -60,13 +60,13 @@ export const userService = {
 
       UserModel.countDocuments({ isActive: true }),
       UserModel.countDocuments({
-        status: "active",
+        isActive: true,
         createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
       }),
 
-      UserModel.countDocuments({ status: "suspended" }),
+      UserModel.countDocuments({ isActive: false }),
       UserModel.countDocuments({
-        status: "suspended",
+        isActive: false,
         createdAt: { $gte: startOfThisWeek },
       }),
 
@@ -98,24 +98,24 @@ export const userService = {
       }
     };
   },
-async getAllUsers() {
-  try {
-    const users = await UserModel.find().sort({ createdAt: -1 });
-    return users;
-  } catch (error) {
-    throw new Error("Failed to fetch all users");
-  }
-},
-async updateUserStatus(userId: string, newStatus: boolean) {
-  const user = await UserModel.findById(userId);
+  async getAllUsers() {
+    try {
+      const users = await UserModel.find().sort({ createdAt: -1 });
+      return users;
+    } catch (error) {
+      throw new Error("Failed to fetch all users");
+    }
+  },
+  async updateUserStatus(userId: string, newStatus: boolean) {
+    const user = await UserModel.findById(userId);
 
-  if (!user) {
-    throw new NotFoundException("User not found");
-  }
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
 
-  user.isActive = newStatus;
-  await user.save();
+    user.isActive = newStatus;
+    await user.save();
 
-  return user;
-},
+    return user;
+  },
 };

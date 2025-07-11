@@ -18,7 +18,7 @@ export interface SummaryResponse {
   };
 }
 export interface UserResponse  {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   phone: string;
@@ -30,6 +30,10 @@ export interface UserResponse  {
   lastLogin: string;
   totalSpent: number;
 }
+export type APIResponse<T> = {
+  data: T;
+  message?: string;
+};
 export const fetchSummary = async (): Promise<SummaryResponse> => {
   const res = await API.get("/user/summary");
   console.log("DATA:", res.data);
@@ -40,4 +44,11 @@ export const fetchUsers =async () :Promise<UserResponse[]> =>{
   const res = await API.get("/user/getAllUsers");
   console.log("DATA:", res.data.data);
    return res.data.data;
+}
+export const updateUserStatus = async (userId : string , isActive : boolean): Promise<APIResponse<UserResponse>> =>{
+  const res = await API.patch(`/user/${userId}/isActive`, {
+    isActive,
+  });
+  console.log("DATA:", res.data);
+   return res.data;
 }

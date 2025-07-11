@@ -47,10 +47,22 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { fetchSummary, fetchUsers } from '@/services/userService';
+import { fetchSummary, fetchUsers, updateUserStatus } from '@/services/userService';
 import type { SummaryResponse, UserResponse } from '../../services/userService';
 import { useDebounce } from '../../hooks/useDebounce';
 import UserDetailModal from './components/UserDetailModal';
+import { toast } from 'sonner';
+import { exportToExcel } from '@/utils/exportToExel';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -60,6 +72,10 @@ const UserManagement = () => {
   const [selectedUser, setSelectedUser] = useState<UserResponse | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const debouncedSearch = useDebounce(searchTerm, 300);
+  const [confirmDialogUser, setConfirmDialogUser] = useState<{
+    user: UserResponse;
+    action: 'suspend' | 'activate';
+  } | null>(null);
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -139,6 +155,43 @@ const UserManagement = () => {
     setSelectedUser(null);
     setShowDetailModal(false);
   };
+
+  const handleToggleUserStatus = async (user: UserResponse) => {
+    console.log(user)
+
+    try {
+      const res = await updateUserStatus(user._id, !user.isActive);
+      if (res) {
+        toast.success(res.message)
+        const updatedUser = res.data
+        setUsers((prev) =>
+          prev.map((u) => (u._id === user._id ? { ...u, isActive: updatedUser.isActive } : u))
+        );
+      }
+    } catch (err) {
+      console.error("Failed to update user status", err);
+    }
+  };
+
+  const handleExportUsers = () => {
+    const exportData = users.map((user) => ({
+      Name: user.name,
+      Email: user.email,
+      Phone: user.phone,
+      Role: user.role,
+      Status: user.isActive ? 'Active' : 'Suspended',
+      Orders: user.orders,
+      TotalSpent: user.totalSpent,
+      JoinDate: user.joinDate
+        ? new Date(user.joinDate).toLocaleDateString('vi-VN')
+        : '',
+      LastLogin: user.lastLogin
+        ? new Date(user.lastLogin).toLocaleDateString('vi-VN')
+        : '',
+    }));
+
+    exportToExcel(exportData, 'Users', `user-list-${new Date().toISOString().split('T')[0]}`);
+  };
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -150,7 +203,7 @@ const UserManagement = () => {
           </p>
         </div>
         <div className="flex items-center space-x-3">
-          <Button variant="outline">
+          <Button variant="outline" className='cursor-pointer' onClick={handleExportUsers}>
             <Download className="mr-2 h-4 w-4" />
             Export Users
           </Button>
@@ -337,7 +390,7 @@ const UserManagement = () => {
               </TableHeader>
               <TableBody>
                 {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
+                  <TableRow key={user._id}>
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <Avatar>
@@ -435,13 +488,19 @@ const UserManagement = () => {
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </DropdownMenuItem>
-                          {user.isActive === true ? (
-                            <DropdownMenuItem className="text-red-600">
+                          {user.isActive ? (
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => setConfirmDialogUser({ user, action: 'suspend' })}
+                            >
                               <Ban className="mr-2 h-4 w-4" />
                               Suspend User
                             </DropdownMenuItem>
                           ) : (
-                            <DropdownMenuItem className="text-green-600">
+                            <DropdownMenuItem
+                              className="text-green-600"
+                              onClick={() => setConfirmDialogUser({ user, action: 'activate' })}
+                            >
                               <CheckCircle className="mr-2 h-4 w-4" />
                               Activate User
                             </DropdownMenuItem>
@@ -462,6 +521,37 @@ const UserManagement = () => {
         onClose={closeUserDetail}
         user={selectedUser}
       />
+      {confirmDialogUser && (
+        <AlertDialog open={!!confirmDialogUser} onOpenChange={(open) => !open && setConfirmDialogUser(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {confirmDialogUser.action === 'suspend'
+                  ? 'Confirm user suspension?'
+                  : 'Confirm user activation?'}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {confirmDialogUser.action === 'suspend'
+                  ? 'This action will change the user’s status to Suspended. Are you sure you want to proceed?'
+                  : 'This will reactivate the user and restore their access. Proceed?'}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setConfirmDialogUser(null)}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={async () => {
+                  await handleToggleUserStatus(confirmDialogUser.user);
+                  setConfirmDialogUser(null);
+                }}
+              >
+                Confirm
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
 
   );

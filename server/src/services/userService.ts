@@ -106,7 +106,16 @@ async getAllUsers() {
     throw new Error("Failed to fetch all users");
   }
 },
-async suspendUser () {
-  
-}
+async updateUserStatus(userId: string, newStatus: boolean) {
+  const user = await UserModel.findById(userId);
+
+  if (!user) {
+    throw new NotFoundException("User not found");
+  }
+
+  user.isActive = newStatus;
+  await user.save();
+
+  return user;
+},
 };

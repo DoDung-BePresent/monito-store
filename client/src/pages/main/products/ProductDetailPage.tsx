@@ -3,9 +3,7 @@ import { useProduct } from '@/hooks/useProducts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
-
 import ProductBreadcrumb from './components/detail/ProductBreadcrumb';
-import ProductImageGallery from './components/detail/ProductImageGallery';
 import ProductInfo from './components/detail/ProductInfo';
 import ProductSpecifications from './components/detail/ProductSpecifications';
 import ImageGallery from '@/components/ImageGallery';

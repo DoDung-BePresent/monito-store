@@ -21,7 +21,7 @@ const PetBanner = () => {
       <img
         src={PetBannerImage}
         alt="Pet banner image"
-        className="absolute bottom-0 z-10"
+        className="absolute bottom-0 z-10  opacity-80 sm:opacity-100 transition-opacity duration-300"
       />
       <div className="z-10 mx-14 flex-1 space-y-4 text-right">
         <h1 className="relative text-6xl leading-tight font-bold text-[#003459]">

@@ -15,13 +15,13 @@ import { Button } from '@/components/ui/button';
 
 const PetBanner = () => {
   return (
-    <div className="relative mx-auto mb-12 flex h-96 max-w-7xl items-center overflow-hidden rounded-lg bg-[#003459]">
-      <div className="absolute -bottom-[580px] -left-52 aspect-square w-[800px] rotate-[30deg] rounded-[99px] bg-[#002A48]" />
-      <div className="absolute -top-[380px] -right-56 aspect-square w-[800px] rotate-[30deg] rounded-[99px] bg-[#FCEED5]" />
+    <div className="relative mx-auto mb-12 flex h-96 max-w-7xl items-center overflow-hidden rounded-lg bg-[#003459] ">
+      <div className="absolute -bottom-[580px] -left-52 aspect-square w-[800px] rotate-[30deg] rounded-[99px] bg-[#002A48] " />
+      <div className="absolute -top-[380px] -right-56 aspect-square w-[800px] rotate-[30deg] rounded-[99px] bg-[#FCEED5] " />
       <img
         src={PetBannerImage}
         alt="Pet banner image"
-        className="absolute bottom-0 left-10 z-10"
+        className="absolute bottom-0 left-10 z-10  opacity-70 sm:opacity-100 transition-opacity duration-300"
       />
       <div className="z-10 mx-14 flex-1 space-y-4 text-right">
         <h1 className="relative text-6xl leading-tight font-bold text-[#003459]">

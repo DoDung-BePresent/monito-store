@@ -1,28 +1,18 @@
-/**
- * Node modules
- */
 import { PlayCircleIcon } from 'lucide-react';
-
-/**
- * Components
- */
 import { Button } from '@/components/ui/button';
-
-/**
- * Assets
- */
 import HeroBannerSectionImage from '@/assets/hero-section.png';
 
 const HeroSection = () => {
   return (
     <section className="relative h-[calc(100vh-78px)] overflow-hidden rounded-b-4xl bg-gradient-to-r from-[#FCEED5] to-[#FFE7BA] px-8 py-16">
       <div className="mx-auto flex max-w-7xl items-center">
-        <div className="mt-20 flex-1 space-y-6">
+        {/* Text content */}
+        <div className="mt-20 flex-1 space-y-6 z-[10] relative">
           <div className="relative">
-            <h1 className="relative z-[5] text-6xl leading-tight font-bold text-[#003459]">
+            <h1 className="relative z-[1] text-6xl leading-tight font-bold text-[#003459]">
               One More Friend
             </h1>
-            <div className="absolute -top-0.5 -left-5 h-20 w-20 rotate-12 rounded-2xl bg-[#F7DBA7]" />
+            <div className="absolute -top-0.5 -left-5 z-0 h-20 w-20 rotate-12 rounded-2xl bg-[#F7DBA7]  opacity-30 sm:opacity-100 transition-opacity duration-300" />
           </div>
           <h2 className="text-4xl font-bold text-[#003459]">
             Thousands More Fun!
@@ -47,12 +37,16 @@ const HeroSection = () => {
           </div>
         </div>
       </div>
-      <div className="absolute right-28 -bottom-60 z-[5] aspect-square w-[635px] rotate-[25deg] rounded-[99px] bg-[#F7DBA7]" />
-      <div className="absolute right-40 -bottom-60 aspect-square w-[635px] rotate-[10deg] rounded-[99px] bg-[#002A48]" />
-      <div className="absolute -bottom-[630px] left-5 z-[5] aspect-square w-[635px] rotate-[60deg] rounded-[99px] bg-[#F7DBA7]" />
+
+      {/* Decorative background shapes */}
+      <div className="absolute right-28 -bottom-60 z-[2] aspect-square w-[635px] rotate-[25deg] rounded-[99px] bg-[#F7DBA7]  opacity-30 sm:opacity-100 transition-opacity duration-300" />
+      <div className="absolute right-40 -bottom-60 z-[1] aspect-square w-[635px] rotate-[10deg] rounded-[99px] bg-[#002A48]  opacity-30 sm:opacity-100 transition-opacity duration-300" />
+      <div className="absolute -bottom-[630px] left-5 z-[0] aspect-square w-[635px] rotate-[60deg] rounded-[99px] bg-[#F7DBA7]  opacity-30 sm:opacity-100 transition-opacity duration-300" />
+
+      {/* Image */}
       <img
         src={HeroBannerSectionImage}
-        className="absolute bottom-0 z-[6] right-0"
+        className="absolute bottom-0 right-0 z-[5] opacity-80 sm:opacity-100 transition-opacity duration-300"
         alt="Hero banner image"
       />
     </section>

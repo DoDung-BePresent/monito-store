@@ -8,59 +8,52 @@ import { Input } from '@/components/ui/input';
 
 export const Footer = () => {
   return (
-    <footer className="bg-[#FCEED5] px-8 py-12">
+    <footer className="bg-[#FCEED5] px-4 py-12">
+      {/* Register section */}
       <div className="mx-auto max-w-7xl rounded-md bg-[#003459]">
-        <div className="flex items-center justify-between p-7 px-8">
-          <h2 className="max-w-[380px] text-2xl font-bold text-white">
+        <div className="flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-7">
+          <h2 className="text-2xl font-bold text-white sm:max-w-[380px]">
             Register Now So You Don't Miss Our Programs
           </h2>
-          <div className="flex items-center justify-center gap-2 rounded-md bg-white p-2.5 py-2.5">
-            <Input placeholder="Enter your email" className='w-[400px]' />
-            <Button className="bg-[#003459] hover:bg-[#003459]/90">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-2 sm:bg-white sm:p-2.5 sm:rounded-md">
+            <Input
+              placeholder="Enter your email"
+              className="w-full sm:w-[400px] bg-white"
+            />
+            <Button className="w-full sm:w-auto bg-[#003459] hover:bg-[#003459]/90">
               Subscribe Now
             </Button>
           </div>
         </div>
       </div>
-      <div className="mx-auto max-w-7xl">
-        <div className="flex items-center justify-between py-10">
-          <nav className="flex items-center gap-15">
-            <a
-              href="#"
-              className="block font-medium text-[#003459] hover:text-[#003459]/80"
-            >
-              Home
-            </a>
-            <a
-              href="#"
-              className="block font-medium text-[#003459] hover:text-[#003459]/80"
-            >
-              Category
-            </a>
-            <a
-              href="#"
-              className="block font-medium text-[#003459] hover:text-[#003459]/80"
-            >
-              About
-            </a>
-            <a
-              href="#"
-              className="block font-medium text-[#003459] hover:text-[#003459]/80"
-            >
-              Contact
-            </a>
+
+      {/* Navigation + social icons */}
+      <div className="mx-auto mt-8 max-w-7xl">
+        <div className="flex flex-col items-center justify-between gap-6 sm:flex-row sm:py-10">
+          <nav className="flex flex-wrap items-center justify-center gap-6">
+            {['Home', 'Category', 'About', 'Contact'].map((label) => (
+              <a
+                key={label}
+                href="#"
+                className="font-medium text-[#003459] hover:text-[#003459]/80"
+              >
+                {label}
+              </a>
+            ))}
           </nav>
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-6">
             <FacebookIcon />
             <TwitterIcon />
             <InstagramIcon />
             <YoutubeIcon />
           </div>
         </div>
-        <div className="flex items-center justify-between border-t border-gray-300 pt-8 text-sm text-gray-600">
+
+        {/* Bottom section */}
+        <div className="mt-8 flex flex-col items-center justify-between gap-6 border-t border-gray-300 pt-8 text-sm text-gray-600 sm:flex-row">
           <div>© 2022 Monito. All rights reserved.</div>
-          <Logo className="mt-3" />
-          <div className="flex space-x-8">
+          <Logo className="mt-1 sm:mt-0" />
+          <div className="flex flex-wrap justify-center gap-4 sm:space-x-8">
             <a href="#" className="hover:text-[#003459]">
               Terms of Service
             </a>

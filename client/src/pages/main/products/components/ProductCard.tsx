@@ -32,16 +32,19 @@ const ProductCard = ({ product }: { product: Product }) => {
     ) : null;
 
   return (
-    <EntityCard
-      href={`/products/${product._id}`}
-      image={product.images[0] || ''}
-      imageAlt={product.name}
-      title={product.name}
-      subtitle={subtitle}
-      price={price}
-      extraContent={giftContent}
-    />
+    <div className="w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
+      <EntityCard
+        href={`/products/${product._id}`}
+        image={product.images[0] || ''}
+        imageAlt={product.name}
+        title={product.name}
+        subtitle={subtitle}
+        price={price}
+        extraContent={giftContent}
+      />
+    </div>
   );
+
 };
 
 ProductCard.Skeleton = EntityCard.Skeleton;

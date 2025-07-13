@@ -8,13 +8,12 @@ import { ArrowRightIcon, Package } from 'lucide-react';
  * Components
  */
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 
 /**
  * Hooks
  */
 import { usePets } from '@/hooks/usePets';
-import PetCard from '@/pages/main/pets/components/PetCard'; // Import từ pets folder
+import PetCard from '@/pages/main/pets/components/PetCard';
 
 const PetSection = () => {
   const params = useMemo(() => {

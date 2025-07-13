@@ -31,8 +31,8 @@ export const userController = {
       next(error);
     }
   },
-  
-    async getUserSummary(
+
+  async getUserSummary(
     req: Request,
     res: Response,
     next: NextFunction,
@@ -41,48 +41,54 @@ export const userController = {
       const summary = await userService.getSummary();
 
       res.status(STATUS_CODE.OK).json({
+        success: true,
+        message: "User summary fetched successfully",
         data: summary,
       });
     } catch (error) {
       next(error);
     }
   },
- async getAllUsers(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const data = await userService.getAllUsers();
+  async getAllUsers(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const data = await userService.getAllUsers();
 
-    res.status(STATUS_CODE.OK).json({
-      data
-    });
-  } catch (error) {
-    next(error);
-  }
-},
-async updateUserStatus(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const { userId } = req.params;
-    const { isActive } = req.body;
-
-    if (typeof isActive !== "boolean") {
-      throw new BadRequestException("isActive must be a boolean");
+      res.status(STATUS_CODE.OK).json({
+        success: true,
+        message: "All users fetched successfully",
+        data,
+        // meta có thể thêm sau nếu cần phân trang
+      });
+    } catch (error) {
+      next(error);
     }
+  },
+  async updateUserStatus(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const { userId } = req.params;
+      const { isActive } = req.body;
 
-    const updatedUser = await userService.updateUserStatus(userId, isActive);
+      if (typeof isActive !== "boolean") {
+        throw new BadRequestException("isActive must be a boolean");
+      }
 
-    res.status(STATUS_CODE.OK).json({
-      message: "User status updated successfully",
-      data: updatedUser,
-    });
-  } catch (error) {
-    next(error);
+      const updatedUser = await userService.updateUserStatus(userId, isActive);
+
+      res.status(STATUS_CODE.OK).json({
+        success: true,
+        message: "User status updated successfully",
+        data: updatedUser,
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-}
 };

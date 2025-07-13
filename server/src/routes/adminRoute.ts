@@ -4,7 +4,7 @@ import { adminController } from "../controllers/adminController";
 
 const adminRoute = express.Router();
 
-adminRoute.get("/summaryAll", adminController.getAdminSummary);
-adminRoute.get("/business-metrics", adminController.getBusinessMetrics);
-adminRoute.get("/user-statistics", adminController.getUserStatistics);
+adminRoute.get("/summary", adminController.getAdminSummary);
+adminRoute.get("/metrics/business", adminController.getBusinessMetrics); 
+adminRoute.get("/stats/users", adminController.getUserStatistics); 
 export default adminRoute;

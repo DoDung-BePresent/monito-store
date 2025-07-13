@@ -3,7 +3,7 @@ import API from "@/lib/axios";
 
 export const getAllSummary = async (days: number) => {
   try {
-    const res = await API.get("/admin/summaryAll", {
+    const res = await API.get("/admin/summary", {
       params: { days },
     });
     console.log(res.data);
@@ -16,7 +16,7 @@ export const getAllSummary = async (days: number) => {
 
 export const getBussinessMetric = async (days: number) => {
   try {
-    const res = await API.get("/admin/business-metrics", {
+    const res = await API.get("/admin/metrics/business", {
       params: { days },
     });
     console.log(res.data);
@@ -29,7 +29,7 @@ export const getBussinessMetric = async (days: number) => {
 
 export const getUserStatistics = async () => {
   try {
-    const res = await API.get("/admin/user-statistics");
+    const res = await API.get("/admin/stats/users");
     console.log(res.data);
     return res.data;
   } catch (error) {

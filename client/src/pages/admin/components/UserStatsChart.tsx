@@ -1,4 +1,3 @@
-"use client";
 
 import { useEffect, useState } from "react";
 import {
@@ -59,7 +58,6 @@ const UserStatsChart = () => {
     fetchStats();
   }, [timeRange]);
 
-  // Transform BusinessMetric[] -> single object for recharts
   const transformedData = [
     chartData.reduce((acc, stat) => {
       const numericValue = parseFloat(String(stat.value).replace(/[^\d.-]/g, ""));
@@ -72,7 +70,7 @@ const UserStatsChart = () => {
   const labelColors: Record<string, string> = {};
   chartData.forEach((stat) => {
     labelColors[stat.name] =
-      stat.trend === "up" ? "#22c55e" : "#ef4444"; // xanh lá hoặc đỏ
+      stat.trend === "up" ? "#22c55e" : "#ef4444";
   });
 
   const uniqueLabels = chartData.map((stat) => stat.name);

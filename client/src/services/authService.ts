@@ -40,16 +40,23 @@ export const authService = {
   },
 
   async updateProfile(data: Partial<User>): Promise<User> {
-    const response = await API.put<ApiResponse<{ user: User }>>('/user/profile', data);
+    const response = await API.put<ApiResponse<{ user: User }>>(
+      '/user/profile',
+      data,
+    );
     return response.data.data.user;
   },
 
   async getCurrentUser(): Promise<User> {
-    const response = await API.get<ApiResponse<{ user: User }>>('/user/current-user');
+    const response =
+      await API.get<ApiResponse<{ user: User }>>('/user/current-user');
     return response.data.data.user;
   },
 
-  async changePassword(data: { currentPassword: string; newPassword: string }): Promise<void> {
+  async changePassword(data: {
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<void> {
     await API.put('/user/change-password', data);
   },
 
@@ -62,9 +69,10 @@ export const authService = {
     const response = await API.post<ApiResponse>('/auth/reset-password', data);
     return response.data;
   },
-  
+
   async isSameName(name: string): Promise<boolean> {
-    const response = await API.get<ApiResponse<{ user: User }>>('/user/current-user');
+    const response =
+      await API.get<ApiResponse<{ user: User }>>('/user/current-user');
     const currentUser = response.data.data?.user;
     if (!currentUser) return false;
     return currentUser.name === name;
